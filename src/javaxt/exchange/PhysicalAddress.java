@@ -10,6 +10,12 @@ package javaxt.exchange;
 
 public class PhysicalAddress {
 
+    /*
+    public static final String HOME_ADDRESS = "Home";
+    public static final String BUSINESS_ADDRESS = "Business";
+    public static final String OTHER_ADDRESS = "Other";
+    */
+
     private String type;
     private java.util.ArrayList<String> street = new java.util.ArrayList<String>();
     private String city;
@@ -17,15 +23,19 @@ public class PhysicalAddress {
     private String country;
     private String postalCode;
 
+
   //**************************************************************************
   //** Constructor
   //**************************************************************************
   /** Creates a new instance of Address. 
    */
-    public PhysicalAddress() {
-        type = "Business"; //vs "Home";
+    public PhysicalAddress(String type){
+        setType(type);
     }
     
+    public PhysicalAddress(){
+        this("Home");
+    }
 
 
   //**************************************************************************
@@ -64,6 +74,27 @@ public class PhysicalAddress {
                 }
             }
         }        
+    }
+
+
+  //**************************************************************************
+  //** setType
+  //**************************************************************************
+  /** Used to set the type or category of address. Note that this field is
+   *  required.
+   * @param type Options include "Home", "Business", and "Other"
+   */
+    public void setType(String type) {
+        if (type==null) type = "";
+        if (type.toUpperCase().contains("HOME")) type = "Home";
+        else if(type.toUpperCase().contains("BUSINESS") ||
+                type.toUpperCase().contains("COMPANY")) type = "Business";
+        else type = "Other";
+        this.type = type;
+    }
+
+    public String getType(){
+        return type;
     }
 
 

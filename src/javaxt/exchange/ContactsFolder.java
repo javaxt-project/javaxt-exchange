@@ -62,10 +62,12 @@ public class ContactsFolder extends Folder {
     }
 
 
-
+  //**************************************************************************
+  //** getContact
+  //**************************************************************************
   /** GetItem request */
     
     public Contact getContact(String exchangeID){
-        return null;
+        return new Contact(exchangeID, conn);
     }
 }

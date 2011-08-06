@@ -95,16 +95,26 @@ public class Folder {
         + "</soap:Body>"
         + "</soap:Envelope>";
 
+        javaxt.http.Response response = conn.execute(msg);
+        return response.getXML();
+    }
+
+
+    protected static org.w3c.dom.Document getItem(String itemID, Connection conn){
+        String msg =
+        "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
+        + "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" "
+            + "xmlns:t=\"http://schemas.microsoft.com/exchange/services/2006/types\" "
+            + "xmlns:m=\"http://schemas.microsoft.com/exchange/services/2006/messages\">"
+        + "<soap:Body>"
+        + "<m:GetItem>"
+        + "<m:ItemShape><t:BaseShape>AllProperties</t:BaseShape></m:ItemShape>"
+        + "<m:ItemIds><t:ItemId Id=\"" + itemID + "\"/></m:ItemIds>"
+        + "</m:GetItem>"
+        + "</soap:Body>"
+        + "</soap:Envelope>";
 
         javaxt.http.Response response = conn.execute(msg);
-        //System.out.println(response.getStatus() + " - " + response.getMessage());
-
-        //String txt = response.getText();
-
-        //System.out.println(txt);
-        //javaxt.io.File file = new javaxt.io.File("/temp/exchange-findItem.xml");
-        //file.write(txt);
-
         return response.getXML();
     }
 }
