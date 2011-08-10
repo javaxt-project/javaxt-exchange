@@ -172,7 +172,7 @@ public class PhysicalAddress {
         java.util.Iterator<String> it = street.iterator();
         str.append("<" + namespace + "Entry Key=\"" + type + "\">");
         while (it.hasNext()){
-            str.append("<" + namespace + "Street>" + it.next() + "</Street>");
+            str.append("<" + namespace + "Street>" + it.next() + "</" + namespace + "Street>");
         }
         if (city!=null) str.append("<" + namespace + "City>" + city + "</" + namespace + "City>");
         //else str.append("<City/>");

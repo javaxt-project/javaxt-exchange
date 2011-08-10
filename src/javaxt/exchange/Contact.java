@@ -232,6 +232,15 @@ public class Contact {
                         }
                     }
                 }
+                else if (nodeName.equalsIgnoreCase("Categories")){
+                    org.w3c.dom.NodeList childNodes = outerNode.getChildNodes();
+                    for (int j=0; j<childNodes.getLength(); j++){
+                        org.w3c.dom.Node childNode = childNodes.item(j);
+                        if (childNode.getNodeType()==1){
+                            categories.add(childNode.getTextContent());
+                        }
+                    }
+                }
             }
         }
     }
@@ -257,7 +266,10 @@ public class Contact {
   /** Used to set the "Display Name" attribute for this contact.
    */
     public void setFullName(String fullName){
-        if (id!=null) updates.put("DisplayName", fullName);
+        if (id!=null) {
+            if (fullName==null) updates.put("DisplayName", null);
+            else if (!fullName.equals(this.fullName)) updates.put("DisplayName", fullName);
+        }
         this.fullName = fullName;
     }
 
@@ -271,7 +283,7 @@ public class Contact {
             String firstName = this.getFirstName();
             if (firstName==null) firstName = "";
             String lastName = this.getLastName();
-            if (lastName!=null) lastName="";
+            if (lastName==null) lastName="";
             fullName = (firstName + " " + lastName).trim();
             if (fullName.length()==0) fullName = null;
         }
@@ -313,10 +325,25 @@ public class Contact {
    */
     public void addPhoneNumber(String phoneNumber, String type){
 
+        if (phoneNumber==null) return;
+        else phoneNumber = phoneNumber.trim();
+
+      //Make sure there are enough number in the string to represent an actual phone number
+        String[] numbers = new String[]{"0","1","2","3","4","5","6","7","8","9"};
+        int numCount = 0;
+        for (int i=0; i<phoneNumber.length(); i++){
+            for (String num : numbers){
+                if (phoneNumber.substring(i, i+1).equals(num)) numCount++;
+            }
+        }
+        if (numCount<7) return;
+
+        //System.out.println(phoneNumber + " (" + type + ")");
+
         type = type.toUpperCase();
         if (type.contains("ASSISTANT")) type = "AssistantPhone";
         else if (type.contains("BUSINESSFAX")) type = "BusinessFax";
-        else if (type.contains("BUSINESS")) type = "BusinessPhone";
+        else if (type.contains("BUSINESS") || type.contains("WORK") || type.contains("OFFICE")) type = "BusinessPhone";
         //else if (type.contains("BUSINESS2")) type = "BusinessPhone2";
         else if (type.contains("CALLBACK")) type = "Callback";
         else if (type.contains("CAR")) type = "CarPhone";
@@ -334,19 +361,25 @@ public class Contact {
         else if (type.contains("TTYTDD")) type = "TtyTddPhone";
         else type = "OtherTelephone";
 
-        
-        phoneNumbers.put(phoneNumber, type);
+        //System.out.println(phoneNumber + " (" + type + ")");
 
-        if (id!=null){
+        if (id!=null && !phoneNumbers.containsKey(phoneNumber)){
             StringBuffer xml = new StringBuffer();
             java.util.Iterator<String> phone = phoneNumbers.keySet().iterator();
             while (phone.hasNext()){
                 String number = phone.next();
                 type = phoneNumbers.get(number);
-                xml.append("<t:Entry Key=\"" + type + "\">" + number + "</t:Entry>");
+
+                //xml.append("<t:Entry Key=\"" + type + "\">" + number + "</t:Entry>");
+                xml.append("<t:IndexedFieldURI FieldURI=\"contacts:PhoneNumber\" FieldIndex=\"" + type + "\"/>");
+                xml.append("<t:Contact><t:PhoneNumbers><t:Entry Key=\"" + type + "\">" + number + "</t:Entry></t:PhoneNumbers></t:Contact>");
+
             }
             updates.put("PhoneNumbers", xml.toString());
         }
+        
+
+        phoneNumbers.put(phoneNumber, type);
     }
 
 
@@ -377,8 +410,16 @@ public class Contact {
     }
 
 
+  //**************************************************************************
+  //** setCompanyName
+  //**************************************************************************
+  /** Used to associate the contact with a company or organization.
+   */
     public void setCompanyName(String company){
-        if (id!=null) updates.put("CompanyName", company);
+        if (id!=null) {
+            if (company==null) updates.put("CompanyName", null);
+            else if (!company.equals(this.company)) updates.put("CompanyName", company);
+        }
         this.company = company;
     }
 
@@ -391,31 +432,61 @@ public class Contact {
   //**************************************************************************
   //** setBirthDay
   //**************************************************************************
-  /** Used to set the date of birth.
+  /** Used to set the date of birth using a java.util.Date.
    */
     public void setBirthDay(java.util.Date birthday){
         setBirthDay(new javaxt.utils.Date(birthday));
     }
 
-    public void setBirthDay(javaxt.utils.Date birthday){
-        if (birthday!=null){
-            if (birthday.getYear()<=1900) birthday = null;
-        }
-        
-        if (birthday!=null && !birthday.hasTimeStamp()) birthday.setTimeZone("UTC", true);        
 
-        if (id!=null) updates.put("Birthday", formatDate(birthday));
+  //**************************************************************************
+  //** setBirthDay
+  //**************************************************************************
+  /** Used to set the date of birth using a javaxt.utils.Date.
+   */
+    public void setBirthDay(javaxt.utils.Date birthday){
+
+      //Validate the date
+        if (birthday!=null){
+            if (birthday.getYear()<1900 || birthday.isAfter(new javaxt.utils.Date())){
+                birthday = null;
+            }
+        }
+
+      //Flip the timezone to UTC as needed.
+        if (birthday!=null && !birthday.hasTimeStamp()){
+            birthday.setTimeZone("UTC", true);
+        }
+
+      //Update birthday
+        if (id!=null){
+            if (birthday==null) updates.put("Birthday", null);
+            else if (!formatDate(birthday).equals(formatDate(this.birthday))){
+                updates.put("Birthday", formatDate(birthday));
+            }
+        }
         this.birthday = birthday;
     }
 
+
+  //**************************************************************************
+  //** setBirthDay
+  //**************************************************************************
+  /** Used to set the date of birth using a String. If the method fails to
+   *  parse the string, the new value will be ignored.
+   */
     public void setBirthDay(String birthday){
         javaxt.utils.Date date = null;
         if (birthday!=null){
             date = new javaxt.utils.Date(birthday);
-            if (date.failedToParse()) date = null;
+            if (date.failedToParse()){
+                if (this.birthday!=null) date = this.birthday;
+                else date = null;
+            }
         }
         setBirthDay(date);
     }
+
 
   //**************************************************************************
   //** getBirthDay
@@ -436,14 +507,23 @@ public class Contact {
         return null;
     }
 
+  //**************************************************************************
+  //** setTitle
+  //**************************************************************************
+  /** Used to set the job title.
+   */
+    public void setTitle(String title){
+        if (id!=null) {
+            if (title==null) updates.put("JobTitle", null);
+            else if (!title.equals(this.title)) updates.put("JobTitle", title);
+        }
+        this.title = title;
+    }
+
     public String getTitle(){
         return title;
     }
 
-    public void setTitle(String title){
-        if (id!=null) updates.put("JobTitle", title);
-        this.title = title;
-    }
 
 
     public void setAddress(PhysicalAddress address){
@@ -462,7 +542,22 @@ public class Contact {
     }
 
 
+
+  //**************************************************************************
+  //** addCategory
+  //**************************************************************************
+  /** Used to add a category to a contact.
+   */
     public void addCategory(String category){
+        
+        if (id!=null && !categories.contains(category)){
+            StringBuffer xml = new StringBuffer();
+            java.util.Iterator<String> it = categories.iterator();
+            while (it.hasNext()){
+                xml.append("<t:String>" + it.next() + "</t:String>");
+            }
+            updates.put("Categories", xml.toString());
+        }
         categories.add(category);
     }
 
@@ -470,12 +565,12 @@ public class Contact {
         return categories.toArray(new String[categories.size()]);
     }
 
-
+   
 
   //**************************************************************************
   //** save
   //**************************************************************************
-  /** Used to save/update a contact.
+  /**  Used to save/update a contact. Returns the Exchange ID for the item.
    */
     public String save(Connection conn){
 
@@ -484,7 +579,7 @@ public class Contact {
         }
         else{
             updateContact(conn);
-            return null;
+            return id;
         }        
     }
 
@@ -510,16 +605,45 @@ public class Contact {
         msg.append("<t:ItemId Id=\"" + id + "\" ChangeKey=\"" + changeKey + "\" />"); //
         msg.append("<t:Updates>");
 
+
+        String namespace = "contacts";
         java.util.Iterator<String> it = updates.keySet().iterator();
         while (it.hasNext()){
             String key = it.next();
-            System.out.println(key);
-            msg.append("<t:SetItemField>");
-            msg.append("<t:FieldURI FieldURI=\"contacts:" + key + "\" />");
-            msg.append("<t:Contact>");
-            msg.append("<t:" + key + ">" + updates.get(key) + "</t:" + key + ">");
-            msg.append("</t:Contact>");
-            msg.append("</t:SetItemField>");
+            String value = updates.get(key);
+            if (key.equalsIgnoreCase("Categories")) namespace = "item";
+
+            if (value==null){
+                System.out.println("Delete " + key);
+                msg.append("<t:DeleteItemField>");
+                msg.append("<t:FieldURI FieldURI=\"" + namespace + ":" + key + "\"/>");
+                msg.append("</t:DeleteItemField>");
+            }
+            else{
+                System.out.println("Update " + key);
+                //System.out.println(value);
+                
+                
+                if (value.trim().startsWith("<t:IndexedFieldURI")){
+                    for (String field : value.split("<t:IndexedFieldURI")){
+                        if (field.trim().length()>0){
+                            msg.append("<t:SetItemField>");
+                            msg.append("<t:IndexedFieldURI");
+                            msg.append(field);
+                            msg.append("</t:SetItemField>");
+                        }
+                    }
+                }
+                else{
+                    msg.append("<t:SetItemField>");
+                    msg.append("<t:FieldURI FieldURI=\"" + namespace + ":" + key + "\" />");
+                    msg.append("<t:Contact>");
+                    msg.append("<t:" + key + ">" + value + "</t:" + key + ">");
+                    msg.append("</t:Contact>");
+                    msg.append("</t:SetItemField>");
+                }
+                
+            }
         }
 
         msg.append("</t:Updates>");
@@ -528,9 +652,10 @@ public class Contact {
         msg.append("</m:UpdateItem>");
         msg.append("</soap:Body>");
         msg.append("</soap:Envelope>");
-
+System.out.println(msg);
 
         updates.clear();
+//if (true) return;
 
         javaxt.http.Response response = conn.execute(msg.toString());
 
@@ -593,6 +718,16 @@ public class Contact {
 
         //WARNING -- ORDER IS VERY IMPORTANT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+
+      //Add categories
+        if (!categories.isEmpty()){
+            msg.append("<t:Categories>");
+            java.util.Iterator<String> it = categories.iterator();
+            while (it.hasNext()){
+                msg.append("<t:String>" + it.next() + "</t:String>");
+            }
+            msg.append("</t:Categories>");
+        }
 
         msg.append("<t:FileAsMapping>LastCommaFirst</t:FileAsMapping>");
         msg.append("<t:DisplayName>" + getFullName() + "</t:DisplayName>");
@@ -773,13 +908,7 @@ public class Contact {
 
 
     public String toString(){
-        if (firstName!=null && lastName!=null){
-            return lastName + ", " + firstName;
-        }
-        else{
-            if (firstName!=null) return firstName;
-            else return lastName;
-        }
+        return this.getFullName();
     }
 
 
