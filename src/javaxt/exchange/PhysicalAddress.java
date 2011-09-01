@@ -210,7 +210,8 @@ public class PhysicalAddress {
         StringBuffer str = new StringBuffer();
 
         if (insert){
-
+            str.append("<" + namespace + "Entry Key=\"" + type + "\">");
+            
             String street = getStreets();
             if (street!=null) str.append("<" + namespace + "Street>" + street + "</" + namespace + "Street>");
 
