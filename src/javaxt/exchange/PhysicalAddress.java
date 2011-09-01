@@ -82,34 +82,64 @@ public class PhysicalAddress {
   //**************************************************************************
   /** Used to set the type or category of address. Note that this field is
    *  required.
-   * @param type Options include "Home", "Business", and "Other"
+   *  @param type Options include "Home", "Business", and "Other". Accepts
+   *  minor varients including "Home Address", "Work", etc.
    */
     public void setType(String type) {
         if (type==null) type = "";
-        if (type.toUpperCase().contains("HOME")) type = "Home";
-        else if(type.toUpperCase().contains("BUSINESS") ||
-                type.toUpperCase().contains("COMPANY")) type = "Business";
+        type = type.toUpperCase();
+
+        if (type.contains("HOME") || type.contains("PERSONAL")) type = "Home";
+        else if(type.contains("BUSINESS") || type.contains("COMPANY") ||
+                type.contains("WORK")) type = "Business";
         else type = "Other";
+
         this.type = type;
     }
 
+
+  //**************************************************************************
+  //** getType
+  //**************************************************************************
+  /** Returns the type or category of address. Options include "Home",
+   *  "Business", and "Other".
+   */
     public String getType(){
         return type;
     }
 
 
+  //**************************************************************************
+  //** getStreet
+  //**************************************************************************
+  /** Returns the street address as an array.
+   */
     public String[] getStreet(){
         if (street.size()==0) return null;
         else return street.toArray(new String[street.size()]);
     }
 
+
+  //**************************************************************************
+  //** addStreet
+  //**************************************************************************
+  /** Used to add a street address.
+   */
     public void addStreet(String street){
+        if (street==null) return;
         for (String s : street.trim().split("\n")){
             s = s.trim();
             if (s.length()>0) this.street.add(s);
         }
     }
     
+    
+  //**************************************************************************
+  //** setStreet
+  //**************************************************************************
+  /** Used to set the street address. Multiple lines can be specified using a
+   *  "\n" or "\r\n" delimitor.
+   */
     public void setStreet(String street){
         this.street.clear();
         this.addStreet(street);
@@ -153,11 +183,20 @@ public class PhysicalAddress {
   //**************************************************************************
   //** toXML
   //**************************************************************************
-  /** Creates an xml fragment that can be used to save/update a contact via
-   *  exchange web services (ews). <br/>
+  /** Returns an xml fragment used to save or update a contact via Exchange
+   *  Web Services (EWS):<br/>
    *  http://msdn.microsoft.com/en-us/library/aa563318%28v=exchg.140%29.aspx
+   *
+   *  @param namespace The namespace assigned to the "type". Typically this is
+   *  "t" which corresponds to
+   *  "http://schemas.microsoft.com/exchange/services/2006/types".
+   *  Use a null value is you do not wish to append a namespace.
+   *
+   *  @param insert Boolean used to specify whether to return an xml
+   *  formatted for inserts or updates. If true, the xml will be formatted for
+   *  inserts. If false, xml will be formatted for updates.
    */
-    protected String toXML(String namespace){
+    protected String toXML(String namespace, boolean insert){
 
       //Update namespace prefix
         if (namespace!=null){
@@ -169,28 +208,101 @@ public class PhysicalAddress {
 
         
         StringBuffer str = new StringBuffer();
-        java.util.Iterator<String> it = street.iterator();
-        str.append("<" + namespace + "Entry Key=\"" + type + "\">");
-        while (it.hasNext()){
-            str.append("<" + namespace + "Street>" + it.next() + "</" + namespace + "Street>");
+
+        if (insert){
+
+            String street = getStreets();
+            if (street!=null) str.append("<" + namespace + "Street>" + street + "</" + namespace + "Street>");
+
+            if (city!=null) str.append("<" + namespace + "City>" + city + "</" + namespace + "City>");
+
+            if (state!=null) str.append("<" + namespace + "State>" + state + "</" + namespace + "State>");
+
+            if (country!=null) str.append("<" + namespace + "Country>" + country + "</" + namespace + "Country>");
+
+            if (postalCode!=null) str.append("<" + namespace + "PostalCode>" + postalCode + "</" + namespace + "PostalCode>");
+
+            str.append("</" + namespace + "Entry>");
         }
-        if (city!=null) str.append("<" + namespace + "City>" + city + "</" + namespace + "City>");
-        //else str.append("<City/>");
-        
-        if (state!=null) str.append("<" + namespace + "State>" + state + "</" + namespace + "State>");
-        //else str.append("<State/>");     
-        
-        if (country!=null) str.append("<" + namespace + "Country>" + country + "</" + namespace + "Country>");
-        //else str.append("<Country/>");
-        
-        if (postalCode!=null) str.append("<" + namespace + "PostalCode>" + postalCode + "</" + namespace + "PostalCode>");
-        //else str.append("<PostalCode/>");
-        
-        str.append("</" + namespace + "Entry>");
+        else{
+
+            str.append(getDeleteXML("Street", namespace));
+            String streets = getStreets();
+            if (streets!=null) str.append(getUpdateXML("Street", streets, namespace));
+
+            if (city!=null) str.append(getUpdateXML("City", city, namespace));
+            else str.append(getDeleteXML("City", namespace));
+
+            if (state!=null) str.append(getUpdateXML("State", state, namespace));
+            else str.append(getDeleteXML("State", namespace));
+
+            if (country!=null) str.append(getUpdateXML("CountryOrRegion", country, namespace));
+            else str.append(getDeleteXML("CountryOrRegion", namespace));
+
+            if (postalCode!=null) str.append(getUpdateXML("PostalCode", postalCode, namespace));
+            else str.append(getDeleteXML("PostalCode", namespace));
+
+        }
         
         return str.toString().trim();
     }
 
+
+
+    private String getUpdateXML(String key, String value, String namespace){
+        StringBuffer str = new StringBuffer();
+        str.append("<" + namespace + "SetItemField>");
+        str.append("<" + namespace + "IndexedFieldURI FieldURI=\"contacts:PhysicalAddress:" + key + "\" FieldIndex=\"" + type + "\"/>");
+        str.append("<" + namespace + "Contact>");
+        str.append("<" + namespace + "PhysicalAddresses>");
+        str.append("<" + namespace + "Entry Key=\"" + type + "\">");
+        str.append("<" + namespace + key + ">" + value + "</" + namespace + key + ">");
+        str.append("</" + namespace + "Entry>");
+        str.append("</" + namespace + "PhysicalAddresses>");
+        str.append("</" + namespace + "Contact>");
+        str.append("</" + namespace + "SetItemField>");
+        return str.toString();
+    }
+
+    private String getDeleteXML(String key, String namespace){
+        StringBuffer str = new StringBuffer();
+        str.append("<" + namespace + "DeleteItemField>");
+        str.append("<" + namespace + "IndexedFieldURI FieldURI=\"contacts:PhysicalAddress:" + key + "\" FieldIndex=\"" + type + "\"/>");
+        str.append("</" + namespace + "DeleteItemField>");
+        return str.toString();
+    }
+
+
+  //**************************************************************************
+  //** getStreets
+  //**************************************************************************
+  /** Returns a properly formatted street address for an XML/SOAP message. */
+
+    private String getStreets(){
+
+        String streets = "";
+        java.util.Iterator<String> it = street.iterator();
+        while (it.hasNext()){
+            String street = it.next();
+            if (street!=null) street = street.trim();
+            if (street!=null && street.length()>0){
+                streets += street + "\r\n";
+            }
+        }
+        streets = streets.trim();
+        if (streets.length()>0){
+
+          //Here's how to preserve line breaks:
+          //http://blogs.msdn.com/b/pcreehan/archive/2009/07/22/line-breaks-in-managed-web-service-proxy-classes.aspx
+            streets = streets.replace("\r", "&#x0d;");
+            streets = streets.replace("\n", "&#x0a;");
+            return streets;
+        }
+        else{
+            return null;
+        }
+
+    }
 
 
   //**************************************************************************
@@ -202,11 +314,34 @@ public class PhysicalAddress {
         StringBuffer str = new StringBuffer();
         java.util.Iterator<String> it = street.iterator();
         while (it.hasNext()){
-            str.append(it.next() + "\r\n");
+            String street = it.next();
+            if (street!=null) street = street.trim();
+            if (street!=null && street.length()>0){
+                str.append(street + "\r\n");
+            }
         }
         if (city!=null) str.append(city);
         if (state!=null) str.append(", " + state);
         if (postalCode!=null) str.append(" " + postalCode);
         return str.toString().trim();
+    }
+
+
+
+    public boolean equals(Object obj){
+
+        if (obj!=null){
+            String str = obj.toString().trim().replace("\r", "").replace("\n", "");
+            String str2 = this.toString().replace("\r", "").replace("\n", "");
+            /*
+            for (int i=0; i<str.length(); i++){
+                System.out.print(str.charAt(i) + " - " + str2.charAt(i));
+                if (str.charAt(i) != str2.charAt(i)) System.out.print(" <---");
+                System.out.print("\r\n");
+            }
+            */
+            return str.equalsIgnoreCase(str2);
+        }
+        else return false;
     }
 }

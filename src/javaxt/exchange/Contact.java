@@ -96,14 +96,53 @@ public class Contact {
     private String title;
     private java.util.HashSet<String> categories = new java.util.HashSet<String>();
     private java.util.HashSet<String> emailAddresses = new java.util.HashSet<String>();
-    private java.util.HashMap<String, String> phoneNumbers = new java.util.HashMap<String, String>();
-    private java.util.ArrayList<PhysicalAddress> physicalAddresses = new java.util.ArrayList<PhysicalAddress>();
+    private java.util.HashMap<String, PhoneNumber> phoneNumbers = new java.util.HashMap<String, PhoneNumber>();
+    private java.util.HashMap<String, PhysicalAddress> physicalAddresses = new java.util.HashMap<String, PhysicalAddress>();
     private javaxt.utils.Date birthday;
-    //private String folderID;
     private java.util.HashMap<String, String> updates = new java.util.HashMap<String, String>();
 
 
+  //**************************************************************************
+  //** resetUpdates
+  //**************************************************************************
+  /** Calls to 'add' and 'set' methods in this class are recorded in a hashmap.
+   *  The hashmap is later used when updating a contact via the save() method.
+   *  Use this method to reset the list of updates. 
+   */
+    protected void resetUpdates(){
+        updates.clear();
+    }
+
+
+  //**************************************************************************
+  //** Constructor
+  //**************************************************************************
+  /** This constructor is provided for application developers who wish to
+   *  extend this class.
+   */
     protected Contact(){}
+
+
+  //**************************************************************************
+  //** Constructor
+  //**************************************************************************
+  /** Creates a new instance of this class using an existing Exchange Contact,
+   *  effectively creating a clone.
+   */
+    public Contact(javaxt.exchange.Contact contact){
+        this.id = contact.id;
+        this.firstName = contact.firstName;
+        this.lastName = contact.lastName;
+        this.fullName = contact.fullName;
+        this.company = contact.company;
+        this.title = contact.title;
+        this.categories = contact.categories;
+        this.emailAddresses = contact.emailAddresses;
+        this.phoneNumbers = contact.phoneNumbers;
+        this.physicalAddresses = contact.physicalAddresses;
+        this.birthday = contact.birthday;
+        this.updates = contact.updates;
+    }
 
 
   //**************************************************************************
@@ -211,16 +250,11 @@ public class Contact {
                 else if (nodeName.equalsIgnoreCase("PhoneNumbers")){
                     org.w3c.dom.NodeList childNodes = outerNode.getChildNodes();
                     for (int j=0; j<childNodes.getLength(); j++){
-                        org.w3c.dom.Node childNode = childNodes.item(j);
-                        if (childNode.getNodeType()==1){
-                            String childNodeName = childNode.getNodeName();
-                            if (childNodeName.contains(":")) childNodeName = childNodeName.substring(childNodeName.indexOf(":")+1);
-                            if (childNodeName.equalsIgnoreCase("Entry")){
-                                String phoneNumber = javaxt.xml.DOM.getNodeValue(childNode);
-                                String type = javaxt.xml.DOM.getAttributeValue(childNode, "Key");
-                                phoneNumbers.put(phoneNumber, type);
-                            }
+                        try{
+                            PhoneNumber phoneNumber = new PhoneNumber(childNodes.item(j));
+                            phoneNumbers.put(phoneNumber.getType(), phoneNumber);
                         }
+                        catch(Exception e){}
                     }
                 }
                 else if (nodeName.equalsIgnoreCase("PhysicalAddresses")){
@@ -228,7 +262,8 @@ public class Contact {
                     for (int j=0; j<childNodes.getLength(); j++){
                         org.w3c.dom.Node childNode = childNodes.item(j);
                         if (childNode.getNodeType()==1){
-                            physicalAddresses.add(new PhysicalAddress(childNode));
+                            PhysicalAddress address = new PhysicalAddress(childNode);
+                            physicalAddresses.put(address.getType(), address);
                         }
                     }
                 }
@@ -290,99 +325,277 @@ public class Contact {
         return fullName;
     }
 
+
+  //**************************************************************************
+  //** getPhysicalAddress
+  //**************************************************************************
+  /** Returns an array of mailing addresses associated with this contact.
+   */
+    public PhysicalAddress[] getPhysicalAddresses(){
+
+      //Only include non-null values in the array
+        java.util.ArrayList<PhysicalAddress> arr = new java.util.ArrayList<PhysicalAddress>();
+        java.util.Iterator<String> it = physicalAddresses.keySet().iterator();
+        while (it.hasNext()){
+            String key = it.next();
+            PhysicalAddress val = physicalAddresses.get(key);
+            if (val!=null) arr.add(val);
+        }
+        return arr.toArray(new PhysicalAddress[arr.size()]);
+    }
+
+  //**************************************************************************
+  //** addPhysicalAddress
+  //**************************************************************************
+  /** Used to associate a mailing address with this contact.
+   */
+    public void addPhysicalAddress(PhysicalAddress address){
+
+      //Check whether this is a new address
+        boolean update = false;
+        if (physicalAddresses.containsKey(address.getType())){
+            java.util.Iterator<String> it = physicalAddresses.keySet().iterator();
+            while (it.hasNext()){
+                String key = it.next();
+                if (key.equals(address.getType())){
+                    PhysicalAddress addr = null;
+                    if (physicalAddresses.get(key)!=null){
+                        addr = physicalAddresses.get(key);
+                    }
+
+                    if (addr==null || !addr.equals(address)){
+                        update = true;
+                    }
+                    break;
+                }
+            }
+        }
+        else{
+            update = true;
+        }
+
+
+        if (update){
+            physicalAddresses.put(address.getType(), address);
+            if (id!=null) updates.put("PhysicalAddresses", getAddressUpdates());
+        }
+    }
+
+
+  //**************************************************************************
+  //** removePhysicalAddress
+  //**************************************************************************
+  /** Deletes an address associated with this contact.
+   *  @param str Complete mailing address or an adress type/category.
+   */
+    public void removePhysicalAddress(String str){
+
+        java.util.Iterator<String> it = physicalAddresses.keySet().iterator();
+        while (it.hasNext()){
+            String type = it.next();
+            if (str.equalsIgnoreCase(type)){
+                physicalAddresses.put(type, null);
+                if (id!=null) updates.put("PhysicalAddresses", getAddressUpdates());
+                break;
+            }
+            else{
+                PhysicalAddress address = physicalAddresses.get(type);
+                if (address.equals(type)){
+                    physicalAddresses.put(type, null);
+                    if (id!=null) updates.put("PhysicalAddresses", getAddressUpdates());
+                    break;
+                }
+            }
+        }
+    }
+
+
+  //**************************************************************************
+  //** removePhysicalAddress
+  //**************************************************************************
+  /** Deletes an address associated with this contact.
+   *  @param address PhysicalAddress. Must be an exact address match.
+   */
+    public void removePhysicalAddress(PhysicalAddress address){
+        java.util.Iterator<String> it = physicalAddresses.keySet().iterator();
+        while (it.hasNext()){
+            String type = it.next();
+            if (physicalAddresses.get(type).equals(address)){
+                physicalAddresses.put(type, null);
+                if (id!=null) updates.put("PhysicalAddresses", getAddressUpdates());
+                break;
+            }
+        }
+    }
+
+
+
+
+  //**************************************************************************
+  //** getAddressUpdates
+  //**************************************************************************
+  /** Returns an xml fragment with address updates or deletions. The xml
+   *  fragment is later used in the updateContact() method.
+   */
+    private String getAddressUpdates(){
+
+        if (physicalAddresses.isEmpty()) return "";
+        else{
+            StringBuffer xml = new StringBuffer();
+
+            java.util.Iterator<String> it = physicalAddresses.keySet().iterator();
+            while (it.hasNext()){
+                String type = it.next();
+                PhysicalAddress address = physicalAddresses.get(type);
+
+
+                
+                if (address==null){
+                    if (id!=null){
+                        xml.append(new PhysicalAddress(type).toXML("t", false) );
+                        /*
+                        //Unfortunately, This doesn't work :-(
+                        xml.append("<t:DeleteItemField>");
+                        xml.append("<t:IndexedFieldURI FieldURI=\"contacts:PhysicalAddress\" FieldIndex=\"" + type + "\" /> ");
+                        xml.append("</t:DeleteItemField>");
+                        */
+                    }
+                }
+                else{
+                    xml.append(address.toXML("t", false) );
+                }
+                
+
+            }
+            return xml.toString();
+        }
+    }
+
+
+
     
   //**************************************************************************
   //** getPhoneNumbers
   //**************************************************************************
-  /** Returns a hashmap with all known phone numbers associated with this
-   *  contact where the key is the number and the value is the type.
+  /** Returns an array of PhoneNumbers associated with this contact.
    */
-    public java.util.HashMap<String, String> getPhoneNumbers(){
-        return this.phoneNumbers;
+    public PhoneNumber[] getPhoneNumbers(){
+
+      //Only include non-null values in the array
+        java.util.ArrayList<PhoneNumber> arr = new java.util.ArrayList<PhoneNumber>();
+        java.util.Iterator<String> it = phoneNumbers.keySet().iterator();
+        while (it.hasNext()){
+            String key = it.next();
+            PhoneNumber val = phoneNumbers.get(key);
+            if (val!=null) arr.add(val);
+        }
+        return arr.toArray(new PhoneNumber[arr.size()]);
     }
 
-
-    public void setPhoneNumber(String phoneNumber, String type){
-        //phoneNumbers.clear();
-        addPhoneNumber(phoneNumber, type);
-    }
-    
 
   //**************************************************************************
   //** addPhoneNumber
   //**************************************************************************
   /** Used to associate a phone number with this contact.
-   * @param phoneNumber The phone number (e.g. 555-555-5555)
-   * @param type Type of phone number. Options include:
-   * <ul>
-   * <li>AssistantPhone</li><li>BusinessFax</li><li>BusinessPhone</li>
-   * <li>BusinessPhone2</li><li>Callback</li><li>CarPhone</li>
-   * <li>CompanyMainPhone</li><li>HomeFax</li><li>HomePhone</li>
-   * <li>HomePhone2</li><li>Isdn</li><li>MobilePhone</li><li>OtherFax</li>
-   * <li>OtherTelephone</li><li>Pager</li><li>PrimaryPhone</li>
-   * <li>RadioPhone</li><li>Telex</li><li>TtyTddPhone</li>
-   * </ul>
    */
-    public void addPhoneNumber(String phoneNumber, String type){
+    public void addPhoneNumber(PhoneNumber phoneNumber){
 
-        if (phoneNumber==null) return;
-        else phoneNumber = phoneNumber.trim();
+      //Check whether this is a new phone number
+        boolean update = false;
+        if (phoneNumbers.containsKey(phoneNumber.getType())){
+            java.util.Iterator<String> it = phoneNumbers.keySet().iterator();
+            while (it.hasNext()){
+                String key = it.next();
+                if (key.equals(phoneNumber.getType())){
+                    String number = null;
+                    if (phoneNumbers.get(key)!=null){
+                        number = phoneNumbers.get(key).getNumber();
+                    }
 
-      //Make sure there are enough number in the string to represent an actual phone number
-        String[] numbers = new String[]{"0","1","2","3","4","5","6","7","8","9"};
-        int numCount = 0;
-        for (int i=0; i<phoneNumber.length(); i++){
-            for (String num : numbers){
-                if (phoneNumber.substring(i, i+1).equals(num)) numCount++;
+                    if (number==null || !number.equals(phoneNumber.getNumber())){
+                        update = true;
+                    }
+                    break;
+                }
             }
         }
-        if (numCount<7) return;
-
-        //System.out.println(phoneNumber + " (" + type + ")");
-
-        type = type.toUpperCase();
-        if (type.contains("ASSISTANT")) type = "AssistantPhone";
-        else if (type.contains("BUSINESSFAX")) type = "BusinessFax";
-        else if (type.contains("BUSINESS") || type.contains("WORK") || type.contains("OFFICE")) type = "BusinessPhone";
-        //else if (type.contains("BUSINESS2")) type = "BusinessPhone2";
-        else if (type.contains("CALLBACK")) type = "Callback";
-        else if (type.contains("CAR")) type = "CarPhone";
-        //else if (type.contains("COMPANYMAIN")) type = "CompanyMainPhone";
-        else if (type.equals("HOMEFAX")) type = "HomeFax";
-        else if (type.contains("HOME")) type = "HomePhone";
-        //else if (type.contains("HOME2")) type = "HomePhone2";
-        else if (type.contains("ISDN")) type = "Isdn";
-        else if (type.contains("MOBILE")) type = "MobilePhone";
-        else if (type.equals("OTHERFAX")) type = "OtherFax";
-        else if (type.contains("PAGER")) type = "Pager";
-        else if (type.contains("PRIMARY")) type = "PrimaryPhone";
-        else if (type.contains("RADIO")) type = "RadioPhone";
-        else if (type.contains("TELEX")) type = "Telex";
-        else if (type.contains("TTYTDD")) type = "TtyTddPhone";
-        else type = "OtherTelephone";
-
-        //System.out.println(phoneNumber + " (" + type + ")");
-
-        if (id!=null && !phoneNumbers.containsKey(phoneNumber)){
-            StringBuffer xml = new StringBuffer();
-            java.util.Iterator<String> phone = phoneNumbers.keySet().iterator();
-            while (phone.hasNext()){
-                String number = phone.next();
-                type = phoneNumbers.get(number);
-
-                //xml.append("<t:Entry Key=\"" + type + "\">" + number + "</t:Entry>");
-                xml.append("<t:IndexedFieldURI FieldURI=\"contacts:PhoneNumber\" FieldIndex=\"" + type + "\"/>");
-                xml.append("<t:Contact><t:PhoneNumbers><t:Entry Key=\"" + type + "\">" + number + "</t:Entry></t:PhoneNumbers></t:Contact>");
-
-            }
-            updates.put("PhoneNumbers", xml.toString());
+        else{
+            update = true;
         }
-        
 
-        phoneNumbers.put(phoneNumber, type);
+
+        if (update){
+            phoneNumbers.put(phoneNumber.getType(), phoneNumber);
+            if (id!=null) updates.put("PhoneNumbers", getPhoneUpdates());
+        }
     }
 
 
+
+  //**************************************************************************
+  //** removePhoneNumber
+  //**************************************************************************
+
+    public void removePhoneNumber(PhoneNumber phoneNumber){
+
+      //Find any "types" associated with this phone number
+        java.util.List<String> types = new java.util.ArrayList<String>();
+        java.util.Iterator<String> it = phoneNumbers.keySet().iterator();
+        while (it.hasNext()){
+            String type = it.next();
+            if (phoneNumbers.get(type).getNumber().equals(phoneNumber.getNumber())){
+                types.add(type);
+            }
+        }
+
+      //Update the hashmap of phone numbers
+        if (!types.isEmpty()){
+            it = types.iterator();
+            while (it.hasNext()){
+                String type = it.next();
+                if (id==null) phoneNumbers.remove(type);
+                else phoneNumbers.put(type, null);
+            }
+            if (id!=null) updates.put("PhoneNumbers", getPhoneUpdates());
+        }
+        
+    }
+
+
+
+
+    private String getPhoneUpdates(){
+
+        if (phoneNumbers.isEmpty()) return "";
+        else{
+            StringBuffer xml = new StringBuffer();
+
+            java.util.Iterator<String> it = phoneNumbers.keySet().iterator();
+            while (it.hasNext()){
+                String type = it.next();
+                PhoneNumber phoneNumber = phoneNumbers.get(type);
+
+                if (phoneNumber==null){
+                    if (id!=null){
+                        xml.append("<t:DeleteItemField>");
+                        xml.append("<t:IndexedFieldURI FieldURI=\"contacts:PhoneNumber\" FieldIndex=\"" + type + "\" /> ");
+                        xml.append("</t:DeleteItemField>");
+                    }
+                }
+                else{
+                    String number = phoneNumber.getNumber();
+                    xml.append("<t:SetItemField>");
+                    xml.append("<t:IndexedFieldURI FieldURI=\"contacts:PhoneNumber\" FieldIndex=\"" + type + "\"/>");
+                    xml.append("<t:Contact><t:PhoneNumbers><t:Entry Key=\"" + type + "\">" + number + "</t:Entry></t:PhoneNumbers></t:Contact>");
+                    xml.append("</t:SetItemField>");
+                }
+
+            }
+            return xml.toString();
+        }
+    }
+
+    
 
 
     public String[] getEmailAddresses(){
@@ -497,6 +710,7 @@ public class Contact {
         return birthday;
     }
 
+
   //**************************************************************************
   //** getAge
   //**************************************************************************
@@ -506,6 +720,7 @@ public class Contact {
         if (birthday!=null) return (int) -birthday.compareTo(new java.util.Date(), "YEAR");
         return null;
     }
+
 
   //**************************************************************************
   //** setTitle
@@ -524,12 +739,6 @@ public class Contact {
         return title;
     }
 
-
-
-    public void setAddress(PhysicalAddress address){
-        this.physicalAddresses.clear();
-        this.physicalAddresses.add(address);
-    }
 
 
     public void setExchangeID(String id){
@@ -580,7 +789,7 @@ public class Contact {
         else{
             updateContact(conn);
             return id;
-        }        
+        }
     }
 
 
@@ -593,7 +802,6 @@ public class Contact {
 
         if (updates.isEmpty()) return;
 
-        String changeKey = getChangeKey(conn);
 
         StringBuffer msg = new StringBuffer();
         msg.append("<?xml version=\"1.0\" encoding=\"utf-8\" ?>");
@@ -602,7 +810,7 @@ public class Contact {
         msg.append("<m:UpdateItem ConflictResolution=\"AutoResolve\">");
         msg.append("<m:ItemChanges>");
         msg.append("<t:ItemChange>");
-        msg.append("<t:ItemId Id=\"" + id + "\" ChangeKey=\"" + changeKey + "\" />"); //
+        msg.append("<t:ItemId Id=\"" + id + "\" ChangeKey=\"" + getChangeKey(conn) + "\" />"); //
         msg.append("<t:Updates>");
 
 
@@ -618,13 +826,28 @@ public class Contact {
                 msg.append("<t:DeleteItemField>");
                 msg.append("<t:FieldURI FieldURI=\"" + namespace + ":" + key + "\"/>");
                 msg.append("</t:DeleteItemField>");
+
+                /*
+                msg.append("<t:DeleteItemField>");
+                msg.append("<t:IndexedFieldURI FieldURI=\"contacts:PhoneNumber\" FieldIndex=\"MobilePhone\" /> ");
+                msg.append("</t:DeleteItemField>");
+                */
+                
+
             }
             else{
                 System.out.println("Update " + key);
                 //System.out.println(value);
-                
-                
-                if (value.trim().startsWith("<t:IndexedFieldURI")){
+
+
+                if (value.trim().startsWith("<t:SetItemField") || value.trim().startsWith("<t:DeleteItemField")){
+                    msg.append(value);
+
+                //msg.append("<t:DeleteItemField>");
+                //msg.append("<t:IndexedFieldURI FieldURI=\"contacts:PhoneNumber\" FieldIndex=\"MobilePhone\" /> ");
+                //msg.append("</t:DeleteItemField>");
+
+                    /*
                     for (String field : value.split("<t:IndexedFieldURI")){
                         if (field.trim().length()>0){
                             msg.append("<t:SetItemField>");
@@ -633,6 +856,7 @@ public class Contact {
                             msg.append("</t:SetItemField>");
                         }
                     }
+                    */
                 }
                 else{
                     msg.append("<t:SetItemField>");
@@ -748,9 +972,8 @@ System.out.println(msg);
       //Add Physical Addresses
         if (!physicalAddresses.isEmpty()){
             msg.append("<t:PhysicalAddresses>");
-            java.util.Iterator<PhysicalAddress> it = physicalAddresses.iterator();
-            while (it.hasNext()){
-                msg.append(it.next().toXML("t"));
+            for (PhysicalAddress address : getPhysicalAddresses()){
+                msg.append(address.toXML("t", true));
             }
             msg.append("</t:PhysicalAddresses>");
         }
@@ -760,11 +983,8 @@ System.out.println(msg);
       //Add Phone Numbers
         if (!phoneNumbers.isEmpty()){
             msg.append("<t:PhoneNumbers>");
-            java.util.Iterator<String> phone = phoneNumbers.keySet().iterator();
-            while (phone.hasNext()){
-                String number = phone.next();
-                String type = phoneNumbers.get(number);
-                msg.append("<t:Entry Key=\"" + type + "\">" + number + "</t:Entry>");
+            for (PhoneNumber phoneNumber : getPhoneNumbers()){
+                msg.append("<t:Entry Key=\"" + phoneNumber.getType() + "\">" + phoneNumber.getNumber() + "</t:Entry>");
             }
             msg.append("</t:PhoneNumbers>");
         }
@@ -817,20 +1037,13 @@ System.out.println(msg);
             org.w3c.dom.Document xml = response.getXML();
             org.w3c.dom.NodeList nodes = xml.getElementsByTagName("t:ItemId");
             if (nodes!=null && nodes.getLength()>0){
-                String id = javaxt.xml.DOM.getAttributeValue(nodes.item(0), "Id");
-                //System.out.println(id);
-                return id;
+                id = javaxt.xml.DOM.getAttributeValue(nodes.item(0), "Id");
             }
 
         }
-        
 
 
-
-        //ItemId
-
-
-        return null;
+        return id;
 
     }
 
@@ -854,6 +1067,8 @@ System.out.println(msg);
         + "</soap:Envelope>";
         conn.execute(msg);
     }
+
+
 
 
 
