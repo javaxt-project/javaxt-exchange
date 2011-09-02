@@ -344,6 +344,7 @@ public class Contact {
         return arr.toArray(new PhysicalAddress[arr.size()]);
     }
 
+
   //**************************************************************************
   //** addPhysicalAddress
   //**************************************************************************
@@ -358,11 +359,7 @@ public class Contact {
             while (it.hasNext()){
                 String key = it.next();
                 if (key.equals(address.getType())){
-                    PhysicalAddress addr = null;
-                    if (physicalAddresses.get(key)!=null){
-                        addr = physicalAddresses.get(key);
-                    }
-
+                    PhysicalAddress addr = physicalAddresses.get(key);
                     if (addr==null || !addr.equals(address)){
                         update = true;
                     }
@@ -447,25 +444,16 @@ public class Contact {
             while (it.hasNext()){
                 String type = it.next();
                 PhysicalAddress address = physicalAddresses.get(type);
-
-
                 
                 if (address==null){
                     if (id!=null){
-                        xml.append(new PhysicalAddress(type).toXML("t", false) );
-                        /*
-                        //Unfortunately, This doesn't work :-(
-                        xml.append("<t:DeleteItemField>");
-                        xml.append("<t:IndexedFieldURI FieldURI=\"contacts:PhysicalAddress\" FieldIndex=\"" + type + "\" /> ");
-                        xml.append("</t:DeleteItemField>");
-                        */
+                        xml.append(new PhysicalAddress(type).toXML("t", false));
                     }
                 }
                 else{
-                    xml.append(address.toXML("t", false) );
+                    xml.append(address.toXML("t", false));
                 }
                 
-
             }
             return xml.toString();
         }
@@ -751,6 +739,17 @@ public class Contact {
     }
 
 
+    public void setCategories(String[] categories){
+        this.categories.clear();
+        for (String category : categories){
+            if (category!=null) addCategory(category);
+        }
+    }        
+
+    public void setCategory(String category){
+        categories.clear();
+        addCategory(category);
+    }
 
   //**************************************************************************
   //** addCategory
@@ -758,8 +757,11 @@ public class Contact {
   /** Used to add a category to a contact.
    */
     public void addCategory(String category){
-        
+
         if (id!=null && !categories.contains(category)){
+
+            categories.add(category);
+            
             StringBuffer xml = new StringBuffer();
             java.util.Iterator<String> it = categories.iterator();
             while (it.hasNext()){
@@ -767,7 +769,9 @@ public class Contact {
             }
             updates.put("Categories", xml.toString());
         }
-        categories.add(category);
+        else{
+            categories.add(category);
+        }
     }
 
     public String[] getCategories(){
@@ -825,38 +829,13 @@ public class Contact {
                 System.out.println("Delete " + key);
                 msg.append("<t:DeleteItemField>");
                 msg.append("<t:FieldURI FieldURI=\"" + namespace + ":" + key + "\"/>");
-                msg.append("</t:DeleteItemField>");
-
-                /*
-                msg.append("<t:DeleteItemField>");
-                msg.append("<t:IndexedFieldURI FieldURI=\"contacts:PhoneNumber\" FieldIndex=\"MobilePhone\" /> ");
-                msg.append("</t:DeleteItemField>");
-                */
-                
-
+                msg.append("</t:DeleteItemField>");                
             }
             else{
                 System.out.println("Update " + key);
-                //System.out.println(value);
-
 
                 if (value.trim().startsWith("<t:SetItemField") || value.trim().startsWith("<t:DeleteItemField")){
                     msg.append(value);
-
-                //msg.append("<t:DeleteItemField>");
-                //msg.append("<t:IndexedFieldURI FieldURI=\"contacts:PhoneNumber\" FieldIndex=\"MobilePhone\" /> ");
-                //msg.append("</t:DeleteItemField>");
-
-                    /*
-                    for (String field : value.split("<t:IndexedFieldURI")){
-                        if (field.trim().length()>0){
-                            msg.append("<t:SetItemField>");
-                            msg.append("<t:IndexedFieldURI");
-                            msg.append(field);
-                            msg.append("</t:SetItemField>");
-                        }
-                    }
-                    */
                 }
                 else{
                     msg.append("<t:SetItemField>");
@@ -876,7 +855,8 @@ public class Contact {
         msg.append("</m:UpdateItem>");
         msg.append("</soap:Body>");
         msg.append("</soap:Envelope>");
-System.out.println(msg);
+
+System.out.println(msg + "\r\n");
 
         updates.clear();
 //if (true) return;
@@ -939,8 +919,31 @@ System.out.println(msg);
         msg.append("<m:Items>");
         msg.append("<t:Contact>");
 
+      
+      /*
+        Here's is an ordered list of all the contact properties. The first set
+        is pretty generic and applies to other Exchange "Items". The second set
+        is specific to contacts. WARNING -- ORDER IS VERY IMPORTANT!!! If you
+        mess up the order of the properties, the save will fail - at least it
+        did on my Exchange Server 2007 SP3 (8.3)
 
-        //WARNING -- ORDER IS VERY IMPORTANT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        MimeContent, ItemId, ParentFolderId, ItemClass, Subject, Sensitivity,
+        Body, Attachments, DateTimeReceived, Size, Categories, Importance,
+        InReplyTo, IsSubmitted, IsDraft, IsFromMe, IsResend, IsUnmodified,
+        InternetMessageHeaders, DateTimeSent, DateTimeCreated, ResponseObjects,
+        ReminderDueBy, ReminderIsSet, ReminderMinutesBeforeStart, DisplayCc,
+        DisplayTo, HasAttachments, ExtendedProperty, Culture, EffectiveRights,
+        LastModifiedName, LastModifiedTime, IsAssociated,
+        WebClientReadFormQueryString, WebClientEditFormQueryString,
+        ConversationId, UniqueBody
+
+        FileAs, FileAsMapping, DisplayName, GivenName, Initials, MiddleName,
+        Nickname, CompleteName, CompanyName, EmailAddresses, PhysicalAddresses,
+        PhoneNumbers, AssistantName, Birthday, BusinessHomePage, Children,
+        Companies, ContactSource, Department, Generation, ImAddresses, JobTitle,
+        Manager, Mileage, OfficeLocation, PostalAddressIndex, Profession,
+        SpouseName, Surname, WeddingAnniversary, HasPicture
+      */
 
 
       //Add categories
@@ -977,8 +980,7 @@ System.out.println(msg);
             }
             msg.append("</t:PhysicalAddresses>");
         }
-
-
+        
 
       //Add Phone Numbers
         if (!phoneNumbers.isEmpty()){
@@ -1000,7 +1002,6 @@ System.out.println(msg);
         msg.append("</soap:Body>");
         msg.append("</soap:Envelope>");
         
-
 
         javaxt.http.Response response = conn.execute(msg.toString());
 

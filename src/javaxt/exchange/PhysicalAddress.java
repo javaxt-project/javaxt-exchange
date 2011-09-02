@@ -227,9 +227,9 @@ public class PhysicalAddress {
         }
         else{
 
-            str.append(getDeleteXML("Street", namespace));
             String streets = getStreets();
             if (streets!=null) str.append(getUpdateXML("Street", streets, namespace));
+            else str.append(getDeleteXML("Street", namespace));
 
             if (city!=null) str.append(getUpdateXML("City", city, namespace));
             else str.append(getDeleteXML("City", namespace));
