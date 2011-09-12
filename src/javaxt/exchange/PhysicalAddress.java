@@ -114,7 +114,7 @@ public class PhysicalAddress {
   //**************************************************************************
   /** Returns the street address as an array.
    */
-    public String[] getStreet(){
+    public String[] getStreets(){
         if (street.size()==0) return null;
         else return street.toArray(new String[street.size()]);
     }
@@ -212,7 +212,7 @@ public class PhysicalAddress {
         if (insert){
             str.append("<" + namespace + "Entry Key=\"" + type + "\">");
             
-            String street = getStreets();
+            String street = getStreetXML();
             if (street!=null) str.append("<" + namespace + "Street>" + street + "</" + namespace + "Street>");
 
             if (city!=null) str.append("<" + namespace + "City>" + city + "</" + namespace + "City>");
@@ -227,7 +227,7 @@ public class PhysicalAddress {
         }
         else{
 
-            String streets = getStreets();
+            String streets = getStreetXML();
             if (streets!=null) str.append(getUpdateXML("Street", streets, namespace));
             else str.append(getDeleteXML("Street", namespace));
 
@@ -279,7 +279,7 @@ public class PhysicalAddress {
   //**************************************************************************
   /** Returns a properly formatted street address for an XML/SOAP message. */
 
-    private String getStreets(){
+    private String getStreetXML(){
 
         String streets = "";
         java.util.Iterator<String> it = street.iterator();
