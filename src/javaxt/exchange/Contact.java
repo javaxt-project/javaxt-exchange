@@ -150,7 +150,7 @@ public class Contact {
   //**************************************************************************
   /** Creates a new instance of this class
    */
-    public Contact(String exchangeID, Connection conn) {
+    public Contact(String exchangeID, Connection conn) throws ExchangeException{
 
         org.w3c.dom.Document xml = Folder.getItem(exchangeID, conn);
         //new javaxt.io.File("/temp/exchange-getitem2.xml").write(xml);
@@ -281,9 +281,26 @@ public class Contact {
     }
 
     protected void setName(String firstName, String lastName) {
+
+        if (id!=null) {
+
+            if (firstName==null) updates.put("GivenName", null);
+            else if (!firstName.equals(this.firstName)) updates.put("GivenName", firstName);
+
+            if (lastName==null) updates.put("Surname", null);
+            else if (!lastName.equals(this.lastName)) updates.put("Surname", lastName);
+
+            if (updates.containsKey("GivenName") || updates.containsKey("Surname")){
+                updates.put("FileAsMapping", "LastCommaFirst");
+            }
+
+        }
+
         this.firstName = firstName;
         this.lastName = lastName;
     }
+
+
 
     public String getFirstName(){
         return firstName;
@@ -730,6 +747,10 @@ public class Contact {
 
 
     public void setExchangeID(String id){
+        if (id!=null){
+            id = id.trim();
+            if (id.length()<25) id = null;
+        }
         this.id = id;
     }
 
@@ -785,7 +806,7 @@ public class Contact {
   //**************************************************************************
   /**  Used to save/update a contact. Returns the Exchange ID for the item.
    */
-    public String save(Connection conn){
+    public String save(Connection conn) throws ExchangeException{
 
         if (id==null){
             return addContact(conn);
@@ -802,7 +823,7 @@ public class Contact {
   //**************************************************************************
   /** Used to update the contact.
    */
-    private void updateContact(Connection conn){
+    private void updateContact(Connection conn) throws ExchangeException {
 
         if (updates.isEmpty()) return;
 
@@ -863,38 +884,8 @@ System.out.println(msg + "\r\n");
 
         javaxt.http.Response response = conn.execute(msg.toString());
 
-        int status = response.getStatus();
-        if (status>=400 && status<600){
-            try{
-                java.io.InputStream errorStream = response.getErrorStream();
-                java.io.BufferedReader buf = new java.io.BufferedReader (
-                                    new java.io.InputStreamReader(errorStream));
-
-                try {
-                    String line;
-                    while  ((line = buf.readLine())!= null) {
-                        System.out.println(line);
-                    }
-                }
-                catch (java.io.IOException e) {}
-
-                errorStream.close();
-                buf.close();
-            }
-            catch(Exception e){
-                e.printStackTrace();
-            }
-        }
-        else{
-
-
-            String txt = response.getText();
-            System.out.println(txt);
-            //javaxt.io.File file = new javaxt.io.File("/temp/exchange-newcontact.xml");
-            //file.write(txt);
-
-        }
-
+        String txt = response.getText();
+        System.out.println(txt);
 
     }
 
@@ -906,7 +897,7 @@ System.out.println(msg + "\r\n");
   /** Used to create a new contact. Returns an id for the newly created
    *  contact or null is there was an error.
    */
-    private String addContact(Connection conn){
+    private String addContact(Connection conn) throws ExchangeException {
 
         StringBuffer msg = new StringBuffer();        
         msg.append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
@@ -1005,47 +996,13 @@ System.out.println(msg + "\r\n");
 
         javaxt.http.Response response = conn.execute(msg.toString());
 
-        int status = response.getStatus();
-        if (status>=400 && status<600){
-            try{
-                java.io.InputStream errorStream = response.getErrorStream();
-                java.io.BufferedReader buf = new java.io.BufferedReader (
-                                    new java.io.InputStreamReader(errorStream));
-
-                try {
-                    String line;
-                    while  ((line = buf.readLine())!= null) {
-                        System.out.println(line);
-                    }
-                }
-                catch (java.io.IOException e) {}
-
-                errorStream.close();
-                buf.close();
-            }
-            catch(Exception e){
-                e.printStackTrace();
-            }
+        org.w3c.dom.Document xml = response.getXML();
+        org.w3c.dom.NodeList nodes = xml.getElementsByTagName("t:ItemId");
+        if (nodes!=null && nodes.getLength()>0){
+            id = javaxt.xml.DOM.getAttributeValue(nodes.item(0), "Id");
         }
-        else{
-
-            /*
-            String txt = response.getText();
-            System.out.println(txt);
-            javaxt.io.File file = new javaxt.io.File("/temp/exchange-newcontact.xml");
-            file.write(txt);
-            */
-            org.w3c.dom.Document xml = response.getXML();
-            org.w3c.dom.NodeList nodes = xml.getElementsByTagName("t:ItemId");
-            if (nodes!=null && nodes.getLength()>0){
-                id = javaxt.xml.DOM.getAttributeValue(nodes.item(0), "Id");
-            }
-
-        }
-
-
+        
         return id;
-
     }
 
 
@@ -1054,7 +1011,7 @@ System.out.println(msg + "\r\n");
   //**************************************************************************
   /** Used to delete a contact.
    */
-    public void delete(Connection conn){
+    public void delete(Connection conn) throws ExchangeException {
         String msg =
         "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
         + "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:t=\"http://schemas.microsoft.com/exchange/services/2006/types\" xmlns:m=\"http://schemas.microsoft.com/exchange/services/2006/messages\">"
@@ -1095,25 +1052,30 @@ System.out.println(msg + "\r\n");
    */
     private String getChangeKey(Connection conn){
 
-        org.w3c.dom.Document xml = Folder.getItem(id, conn);
-        org.w3c.dom.NodeList nodes = xml.getElementsByTagName("t:Contact");
-        for (int i=0; i<nodes.getLength(); i++){
-            org.w3c.dom.Node node = nodes.item(i);
-            if (node.getNodeType()==1){
+        try{
+            org.w3c.dom.Document xml = Folder.getItem(id, conn);
+            org.w3c.dom.NodeList nodes = xml.getElementsByTagName("t:Contact");
+            for (int i=0; i<nodes.getLength(); i++){
+                org.w3c.dom.Node node = nodes.item(i);
+                if (node.getNodeType()==1){
 
-                org.w3c.dom.NodeList outerNodes = node.getChildNodes();
-                for (int j=0; j<outerNodes.getLength(); j++){
-                    org.w3c.dom.Node outerNode = outerNodes.item(j);
-                    if (outerNode.getNodeType()==1){
-                        String nodeName = outerNode.getNodeName();
-                        if (nodeName.contains(":")) nodeName = nodeName.substring(nodeName.indexOf(":")+1);
-                        if (nodeName.equalsIgnoreCase("ItemId")){
-                            return javaxt.xml.DOM.getAttributeValue(outerNode, "ChangeKey");
+                    org.w3c.dom.NodeList outerNodes = node.getChildNodes();
+                    for (int j=0; j<outerNodes.getLength(); j++){
+                        org.w3c.dom.Node outerNode = outerNodes.item(j);
+                        if (outerNode.getNodeType()==1){
+                            String nodeName = outerNode.getNodeName();
+                            if (nodeName.contains(":")) nodeName = nodeName.substring(nodeName.indexOf(":")+1);
+                            if (nodeName.equalsIgnoreCase("ItemId")){
+                                return javaxt.xml.DOM.getAttributeValue(outerNode, "ChangeKey");
+                            }
                         }
                     }
+
                 }
 
             }
+        }
+        catch(ExchangeException e){
 
         }
 

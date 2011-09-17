@@ -17,13 +17,13 @@ public class ContactsFolder extends Folder {
   //**************************************************************************
   /** Creates a new instance of ContactFolder. */
 
-    public ContactsFolder(Connection conn) {
+    public ContactsFolder(Connection conn) throws ExchangeException {
         super("contacts", conn);
         this.conn = conn;
     }
 
     
-    public Contact[] getContacts(){
+    public Contact[] getContacts() throws ExchangeException {
 
         java.util.ArrayList<Contact> contacts = new java.util.ArrayList<Contact>();
         
@@ -44,7 +44,7 @@ public class ContactsFolder extends Folder {
 
 
 
-    public Contact[] getContacts(int numEntries, int offset){
+    public Contact[] getContacts(int numEntries, int offset) throws ExchangeException {
 
         java.util.ArrayList<Contact> contacts = new java.util.ArrayList<Contact>();
         org.w3c.dom.NodeList nodes = getItems(conn, numEntries, offset).getElementsByTagName("t:Contact");
@@ -67,7 +67,7 @@ public class ContactsFolder extends Folder {
   //**************************************************************************
   /** GetItem request */
     
-    public Contact getContact(String exchangeID){
+    public Contact getContact(String exchangeID) throws ExchangeException {
         return new Contact(exchangeID, conn);
     }
 }

@@ -22,7 +22,7 @@ public class Folder {
   /** Retrieves the folder id and item count for a given folder name.
    *  @param folderName Name of the exchange folder (e.g. inbox, contacts, etc).
    */
-    public Folder(String folderName, Connection conn){
+    public Folder(String folderName, Connection conn) throws ExchangeException {
         String msg =
         "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
         + "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:t=\"http://schemas.microsoft.com/exchange/services/2006/types\">"
@@ -36,7 +36,6 @@ public class Folder {
 
 
         javaxt.http.Response response = conn.execute(msg);
-        System.out.println(response.getStatus() + " - " + response.getMessage());
         parseXML(response.getXML());
     }
 
@@ -77,7 +76,7 @@ public class Folder {
 
 
     
-    protected org.w3c.dom.Document getItems(Connection conn, int maxEntries, int offset){
+    protected org.w3c.dom.Document getItems(Connection conn, int maxEntries, int offset) throws ExchangeException {
 
         String msg =
         "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
@@ -100,7 +99,7 @@ public class Folder {
     }
 
 
-    protected static org.w3c.dom.Document getItem(String itemID, Connection conn){
+    protected static org.w3c.dom.Document getItem(String itemID, Connection conn) throws ExchangeException {
         String msg =
         "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
         + "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" "
