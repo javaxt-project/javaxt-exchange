@@ -170,8 +170,7 @@ public class Contact {
   /** Creates a new instance of this class with a name
    */
     public Contact(String firstName, String lastName) {
-        this.firstName = firstName;
-        this.lastName = lastName;
+        this.setName(firstName, lastName);
     }
 
 
@@ -282,6 +281,17 @@ public class Contact {
 
     protected void setName(String firstName, String lastName) {
 
+        if (firstName!=null){
+            firstName = firstName.trim();
+            if (firstName.length()==0) firstName = null;
+        }
+
+        if (lastName!=null){
+            lastName = lastName.trim();
+            if (lastName.length()==0) lastName = null;
+        }
+
+
         if (id!=null) {
 
             if (firstName==null) updates.put("GivenName", null);
@@ -303,10 +313,18 @@ public class Contact {
 
 
     public String getFirstName(){
+        if (firstName!=null){
+            firstName = firstName.trim();
+            if (firstName.length()==0) firstName = null;
+        }
         return firstName;
     }
 
     public String getLastName(){
+        if (lastName!=null){
+            lastName = lastName.trim();
+            if (lastName.length()==0) lastName = null;
+        }
         return lastName;
     }
 
@@ -318,6 +336,12 @@ public class Contact {
   /** Used to set the "Display Name" attribute for this contact.
    */
     public void setFullName(String fullName){
+
+        if (fullName!=null){
+            fullName = fullName.trim();
+            if (fullName.length()==0) fullName = null;
+        }
+
         if (id!=null) {
             if (fullName==null) updates.put("DisplayName", null);
             else if (!fullName.equals(this.fullName)) updates.put("DisplayName", fullName);
@@ -400,7 +424,7 @@ public class Contact {
   //** removePhysicalAddress
   //**************************************************************************
   /** Deletes an address associated with this contact.
-   *  @param str Complete mailing address or an adress type/category.
+   *  @param str Complete mailing address or an address type/category.
    */
     public void removePhysicalAddress(String str){
 
@@ -634,6 +658,11 @@ public class Contact {
   /** Used to associate the contact with a company or organization.
    */
     public void setCompanyName(String company){
+        if (company!=null){
+            company = company.trim();
+            if (company.length()==0) company = null;
+        }
+
         if (id!=null) {
             if (company==null) updates.put("CompanyName", null);
             else if (!company.equals(this.company)) updates.put("CompanyName", company);
@@ -641,7 +670,17 @@ public class Contact {
         this.company = company;
     }
 
+
+  //**************************************************************************
+  //** getCompanyName
+  //**************************************************************************
+  /** Returns the company or organization associated with this contact.
+   */
     public String getCompanyName(){
+        if (company!=null){
+            company = company.trim();
+            if (company.length()==0) company = null;
+        }
         return company;
     }
 
@@ -733,14 +772,29 @@ public class Contact {
   /** Used to set the job title.
    */
     public void setTitle(String title){
+        if (title!=null){
+            title = title.trim();
+            if (title.length()==0) title = null;
+        }
+
         if (id!=null) {
             if (title==null) updates.put("JobTitle", null);
             else if (!title.equals(this.title)) updates.put("JobTitle", title);
         }
         this.title = title;
     }
+    
 
+  //**************************************************************************
+  //** getTitle
+  //**************************************************************************
+  /** Returns the job title associated with this contact.
+   */
     public String getTitle(){
+        if (title!=null){
+            title = title.trim();
+            if (title.length()==0) title = null;
+        }
         return title;
     }
 
@@ -760,16 +814,41 @@ public class Contact {
     }
 
 
+  //**************************************************************************
+  //** setCategories
+  //**************************************************************************
+  /** Used to add categories to a contact.
+   */
     public void setCategories(String[] categories){
-        this.categories.clear();
-        for (String category : categories){
-            if (category!=null) addCategory(category);
+        
+        if (categories==null || categories.length==0) return; //removeCategories() ???
+
+
+      //See whether any updates are required
+        int numMatches = 0;
+        if (categories.length==this.categories.size()){
+            for (String category : categories){
+                if (category!=null){
+                    if (this.categories.contains(category)) numMatches++;
+                }
+            }
         }
-    }        
+
+      //If the input array equals the current list of categories, do nothing...
+        if (numMatches==categories.length){
+            return;
+        }
+        else {
+            this.categories.clear();
+            for (String category : categories){
+                addCategory(category);
+            }
+        }
+    }
+
 
     public void setCategory(String category){
-        categories.clear();
-        addCategory(category);
+        setCategories(new String[]{category});
     }
 
   //**************************************************************************
@@ -778,6 +857,13 @@ public class Contact {
   /** Used to add a category to a contact.
    */
     public void addCategory(String category){
+
+        if (category!=null){
+            category = category.trim();
+            if (category.length()==0) category = null;
+        }
+        if (category==null) return;
+
 
         if (id!=null && !categories.contains(category)){
 
