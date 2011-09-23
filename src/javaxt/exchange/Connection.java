@@ -43,7 +43,7 @@ public class Connection {
    *  @param soap Raw SOAP message
    *  @return Raw HTTP response
    */
-    public javaxt.http.Response execute(String soap) throws ExchangeException {
+    public org.w3c.dom.Document execute(String soap) throws ExchangeException {
 
         javaxt.http.Request request = new javaxt.http.Request(ews);
         request.setCredentials(username, password);
@@ -56,7 +56,12 @@ public class Connection {
         if (status>=400){
             throw new ExchangeException(response.getErrorMessage());
         }
-        return response;
+
+        org.w3c.dom.Document xml = response.getXML();
+        String error = ExchangeException.parseError(xml);
+        if (error!=null) throw new ExchangeException(error);
+        
+        return xml;
     }
 
     

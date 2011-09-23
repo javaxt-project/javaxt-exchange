@@ -35,8 +35,7 @@ public class Folder {
 
 
 
-        javaxt.http.Response response = conn.execute(msg);
-        parseXML(response.getXML());
+        parseXML(conn.execute(msg));
     }
 
 
@@ -93,9 +92,8 @@ public class Folder {
         + "</m:FindItem>"
         + "</soap:Body>"
         + "</soap:Envelope>";
-
-        javaxt.http.Response response = conn.execute(msg);
-        return response.getXML();
+        
+        return conn.execute(msg);
     }
 
 
@@ -112,8 +110,7 @@ public class Folder {
         + "</m:GetItem>"
         + "</soap:Body>"
         + "</soap:Envelope>";
-
-        javaxt.http.Response response = conn.execute(msg);
-        return response.getXML();
+        
+        return conn.execute(msg);
     }
 }

@@ -17,7 +17,7 @@ public class ExchangeException extends Exception{
   /** Creates a new instance of Exception. */
 
     public ExchangeException(String error) {
-        super(parseError(error));
+        super(error);
     }
 
     public ExchangeException() {
@@ -26,8 +26,9 @@ public class ExchangeException extends Exception{
 
 
     
-    private static String parseError(String error){
-        return error;
+    protected static String parseError(org.w3c.dom.Document xml){
+        System.out.println("Parse Error!");
+        return null;
     }
 
 }

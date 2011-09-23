@@ -54,7 +54,7 @@ public class PhysicalAddress {
             if (childNode.getNodeType()==1){
                 String childNodeName = childNode.getNodeName();
                 if (childNodeName.contains(":")) childNodeName = childNodeName.substring(childNodeName.indexOf(":")+1);
-                String value = javaxt.xml.DOM.getNodeValue(childNode);
+                String value = javaxt.xml.DOM.getNodeValue(childNode).trim();
                 if (value.length()>0){
                     if (childNodeName.equalsIgnoreCase("Street")){
                         street.add(value);
@@ -145,37 +145,49 @@ public class PhysicalAddress {
         this.addStreet(street);
     }
     
-    
+    private String getValue(String val){
+        if (val!=null){
+            val = val.trim();
+            if (val.length()==0) val = null;
+        }        
+        return val;
+    }
+
+
     public String getCity(){
+        city = getValue(city);
         return city;        
     }
     
     public void setCity(String city){
-        this.city = city;
+        this.city = getValue(city);
     }
     
     public String getState(){
+        state = getValue(state);
         return state;        
     }
     
     public void setState(String state){
-        this.state = state;
+        this.state = getValue(state);
     }
 
     public String getCountry(){
+        country = getValue(country);
         return country;
     }
 
     public void setCountry(String country){
-        this.country = country;
+        this.country = getValue(country);
     }
 
     public String getPostalCode(){
+        postalCode = getValue(postalCode);
         return postalCode;
     }
 
     public void setPostalCode(String postalCode){
-        this.postalCode = postalCode;
+        this.postalCode = getValue(postalCode);
     }
 
 
@@ -313,35 +325,66 @@ public class PhysicalAddress {
 
     public String toString(){
         StringBuffer str = new StringBuffer();
-        java.util.Iterator<String> it = street.iterator();
-        while (it.hasNext()){
-            String street = it.next();
-            if (street!=null) street = street.trim();
-            if (street!=null && street.length()>0){
-                str.append(street + "\r\n");
+        if (!isEmpty()){
+            java.util.Iterator<String> it = street.iterator();
+            while (it.hasNext()){
+                String street = it.next();
+                if (street!=null) street = street.trim();
+                if (street!=null && street.length()>0){
+                    str.append(street + "\r\n");
+                }
             }
+            if (city!=null) str.append(city);
+            if (state!=null) str.append(", " + state);
+            if (postalCode!=null) str.append(" " + postalCode);
         }
-        if (city!=null) str.append(city);
-        if (state!=null) str.append(", " + state);
-        if (postalCode!=null) str.append(" " + postalCode);
         return str.toString().trim();
     }
 
 
+  //**************************************************************************
+  //** isEmpty
+  //**************************************************************************
+  /** Used to determine whether the address is empty. Returns true if all the
+   *  address attributes are null.
+   */
+    public boolean isEmpty(){
+        return !(getCity()!=null || getState()!=null ||
+            getPostalCode()!=null || getStreets()!=null);
+    }
+    
 
+  //**************************************************************************
+  //** equals
+  //**************************************************************************
+  /** Used to compare addresses. Performs a simple case insensitive string
+   *  comparison.
+   */
     public boolean equals(Object obj){
 
         if (obj!=null){
-            String str = obj.toString().trim().replace("\r", "").replace("\n", "");
-            String str2 = this.toString().replace("\r", "").replace("\n", "");
+
+          //Normalize the addresses
+            String str1 = obj.toString().replace("\r", "").replace("\n", " ").replace(",", " ");
+            String str2 = this.toString().replace("\r", "").replace("\n", " ").replace(",", " ");
+            while (str1.contains("  ")) str1 = str1.replace("  ", " ");
+            while (str2.contains("  ")) str2 = str2.replace("  ", " ");
+            str1 = str1.trim();
+            str2 = str2.trim();
+
             /*
-            for (int i=0; i<str.length(); i++){
-                System.out.print(str.charAt(i) + " - " + str2.charAt(i));
-                if (str.charAt(i) != str2.charAt(i)) System.out.print(" <---");
-                System.out.print("\r\n");
+            System.out.println("str1: |" + str1 + "|");
+            System.out.println("str2: |" + str2 + "|");
+            if (!str1.equalsIgnoreCase(str2) && str1.length()>0 && str2.length()>0){
+                for (int i=0; i<str1.length(); i++){
+                    System.out.print(str1.charAt(i) + " - " + str2.charAt(i));
+                    if (str1.charAt(i) != str2.charAt(i)) System.out.print(" <---");
+                    System.out.print("\r\n");
+                }
             }
             */
-            return str.equalsIgnoreCase(str2);
+            
+            return str1.equalsIgnoreCase(str2);
         }
         else return false;
     }

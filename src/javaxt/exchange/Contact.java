@@ -293,12 +293,13 @@ public class Contact {
 
 
         if (id!=null) {
+            this.firstName = getFirstName();
+            if (firstName==null && this.firstName!=null) updates.put("GivenName", null);
+            if (firstName!=null && !firstName.equals(this.firstName)) updates.put("GivenName", firstName);
 
-            if (firstName==null) updates.put("GivenName", null);
-            else if (!firstName.equals(this.firstName)) updates.put("GivenName", firstName);
-
-            if (lastName==null) updates.put("Surname", null);
-            else if (!lastName.equals(this.lastName)) updates.put("Surname", lastName);
+            this.lastName = getLastName();
+            if (lastName==null && this.lastName!=null) updates.put("Surname", null);
+            if (lastName!=null && !lastName.equals(this.lastName)) updates.put("Surname", lastName);
 
             if (updates.containsKey("GivenName") || updates.containsKey("Surname")){
                 updates.put("FileAsMapping", "LastCommaFirst");
@@ -343,8 +344,9 @@ public class Contact {
         }
 
         if (id!=null) {
-            if (fullName==null) updates.put("DisplayName", null);
-            else if (!fullName.equals(this.fullName)) updates.put("DisplayName", fullName);
+            this.fullName = getFullName();
+            if (fullName==null && this.fullName!=null) updates.put("DisplayName", null);
+            if (fullName!=null && !fullName.equals(this.fullName)) updates.put("DisplayName", fullName);
         }
         this.fullName = fullName;
     }
@@ -392,30 +394,37 @@ public class Contact {
   /** Used to associate a mailing address with this contact.
    */
     public void addPhysicalAddress(PhysicalAddress address){
-
-      //Check whether this is a new address
-        boolean update = false;
-        if (physicalAddresses.containsKey(address.getType())){
-            java.util.Iterator<String> it = physicalAddresses.keySet().iterator();
-            while (it.hasNext()){
-                String key = it.next();
-                if (key.equals(address.getType())){
-                    PhysicalAddress addr = physicalAddresses.get(key);
-                    if (addr==null || !addr.equals(address)){
-                        update = true;
-                    }
-                    break;
-                }
-            }
+        
+        if (address.isEmpty()){
+            removePhysicalAddress(address);
         }
         else{
-            update = true;
-        }
+
+          //Check whether this is a new address
+            boolean update = false;
+            if (physicalAddresses.containsKey(address.getType())){
+                java.util.Iterator<String> it = physicalAddresses.keySet().iterator();
+                while (it.hasNext()){
+                    String key = it.next();
+                    if (key.equals(address.getType())){
+                        PhysicalAddress addr = physicalAddresses.get(key);
+                        if (addr==null || !addr.equals(address)){
+                            update = true;
+                        }
+                        break;
+                    }
+                }
+            }
+            else{
+                update = true;
+            }
 
 
-        if (update){
-            physicalAddresses.put(address.getType(), address);
-            if (id!=null) updates.put("PhysicalAddresses", getAddressUpdates());
+            if (update){
+                physicalAddresses.put(address.getType(), address);
+                if (id!=null) updates.put("PhysicalAddresses", getAddressUpdates());
+            }
+
         }
     }
 
@@ -633,18 +642,65 @@ public class Contact {
     }
 
 
-    public void setEmailAddress(String emailAddress){
-        emailAddresses.clear();
-        addEmailAddress(emailAddress);
-    }
+    public void setEmailAddresses(String[] emailAddresses){ //String[] categories
 
-    public void addEmailAddress(String emailAddress){
-        if (emailAddress!=null) {
-            emailAddress = emailAddress.trim();
-            if (emailAddress.contains("@")){
-                emailAddresses.add(emailAddress.toLowerCase());
+
+        if (emailAddresses==null || emailAddresses.length==0) return; //removeCategories() ???
+
+
+      //See whether any updates are required
+        int numMatches = 0;
+        if (emailAddresses.length==this.emailAddresses.size()){
+            for (String emailAddress : emailAddresses){
+                if (emailAddress!=null){
+                    emailAddress = emailAddress.toLowerCase();
+                    if (this.emailAddresses.contains(emailAddress)) numMatches++;
+                }
             }
         }
+
+      //If the input array equals the current list of categories, do nothing...
+        if (numMatches==emailAddresses.length){
+            return;
+        }
+        else {
+            this.emailAddresses.clear();
+            for (String emailAddress : emailAddresses){
+                addEmailAddress(emailAddress);
+            }
+        }
+
+    }
+
+    public void setEmailAddress(String emailAddress){
+        setEmailAddresses(new String[]{emailAddress});
+    }    
+
+    public void addEmailAddress(String emailAddress){
+
+
+        if (emailAddress!=null){
+            emailAddress = emailAddress.toLowerCase().trim();
+            if (!emailAddress.contains("@") || emailAddress.length()==0) emailAddress = null; //Need a stronger validation than this...
+        }
+        if (emailAddress==null) return;
+
+
+        if (id!=null && !emailAddresses.contains(emailAddress)){
+
+            emailAddresses.add(emailAddress);
+            
+            String[] emails = getEmailAddresses();
+            StringBuffer xml = new StringBuffer();
+            for (int i=0; i<emails.length; i++){
+                xml.append("<t:Entry Key=\"EmailAddress" + (i+1) + "\">" + emails[i] + "</t:Entry>");
+            }
+            updates.put("EmailAddresses", xml.toString());
+        }
+        else{
+            emailAddresses.add(emailAddress);
+        }
+
     }
 
     public void removeEmailAddress(String emailAddress){
@@ -664,8 +720,8 @@ public class Contact {
         }
 
         if (id!=null) {
-            if (company==null) updates.put("CompanyName", null);
-            else if (!company.equals(this.company)) updates.put("CompanyName", company);
+            if (company==null && this.company!=null) updates.put("CompanyName", null);
+            if (company!=null && !company.equals(this.company)) updates.put("CompanyName", company);
         }
         this.company = company;
     }
@@ -717,8 +773,8 @@ public class Contact {
 
       //Update birthday
         if (id!=null){
-            if (birthday==null) updates.put("Birthday", null);
-            else if (!formatDate(birthday).equals(formatDate(this.birthday))){
+            if (birthday==null && this.birthday!=null) updates.put("Birthday", null);
+            if (birthday!=null && !formatDate(birthday).equals(formatDate(this.birthday))){
                 updates.put("Birthday", formatDate(birthday));
             }
         }
@@ -778,8 +834,9 @@ public class Contact {
         }
 
         if (id!=null) {
-            if (title==null) updates.put("JobTitle", null);
-            else if (!title.equals(this.title)) updates.put("JobTitle", title);
+            this.title = getTitle();
+            if (title==null && this.title!=null) updates.put("JobTitle", null);
+            if (title!=null && !title.equals(this.title)) updates.put("JobTitle", title);
         }
         this.title = title;
     }
@@ -968,10 +1025,11 @@ System.out.println(msg + "\r\n");
         updates.clear();
 //if (true) return;
 
-        javaxt.http.Response response = conn.execute(msg.toString());
+        conn.execute(msg.toString());
+        //javaxt.http.Response response = conn.execute(msg.toString());
 
-        String txt = response.getText();
-        System.out.println(txt);
+        //String txt = response.getText();
+        //System.out.println(txt);
 
     }
 
@@ -1080,9 +1138,8 @@ System.out.println(msg + "\r\n");
         msg.append("</soap:Envelope>");
         
 
-        javaxt.http.Response response = conn.execute(msg.toString());
 
-        org.w3c.dom.Document xml = response.getXML();
+        org.w3c.dom.Document xml = conn.execute(msg.toString());
         org.w3c.dom.NodeList nodes = xml.getElementsByTagName("t:ItemId");
         if (nodes!=null && nodes.getLength()>0){
             id = javaxt.xml.DOM.getAttributeValue(nodes.item(0), "Id");
