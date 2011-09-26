@@ -34,15 +34,15 @@ public class PhoneNumber {
    * <li>RadioPhone</li><li>Telex</li><li>TtyTddPhone</li>
    * </ul>
    */
-    public PhoneNumber(String phoneNumber, String type) throws java.lang.Exception {
+    public PhoneNumber(String phoneNumber, String type) throws ExchangeException {
         this.number = getNumber(phoneNumber);
         this.type = getType(type);
 
-        if (number==null) throw new Exception("Invalid Phone Number:  " + phoneNumber);
+        if (number==null) throw new ExchangeException("Invalid Phone Number:  " + phoneNumber);
     }
 
     
-    protected PhoneNumber(org.w3c.dom.Node childNode) throws java.lang.Exception {
+    protected PhoneNumber(org.w3c.dom.Node childNode) throws ExchangeException {
         if (childNode.getNodeType()==1){
             String childNodeName = childNode.getNodeName();
             if (childNodeName.contains(":")) childNodeName = childNodeName.substring(childNodeName.indexOf(":")+1);
@@ -55,7 +55,7 @@ public class PhoneNumber {
         }
 
         if (number==null) {
-            throw new Exception("Invalid Phone Number:  "
+            throw new ExchangeException("Invalid Phone Number:  "
                 + javaxt.xml.DOM.getNodeValue(childNode));
         }
     }

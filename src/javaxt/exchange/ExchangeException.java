@@ -23,12 +23,4 @@ public class ExchangeException extends Exception{
     public ExchangeException() {
         super();
     }
-
-
-    
-    protected static String parseError(org.w3c.dom.Document xml){
-        System.out.println("Parse Error!");
-        return null;
-    }
-
 }

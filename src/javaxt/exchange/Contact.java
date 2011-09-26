@@ -95,7 +95,7 @@ public class Contact {
     private String company;
     private String title;
     private java.util.HashSet<String> categories = new java.util.HashSet<String>();
-    private java.util.HashSet<String> emailAddresses = new java.util.HashSet<String>();
+    private java.util.ArrayList<EmailAddress> emailAddresses = new java.util.ArrayList<EmailAddress>();
     private java.util.HashMap<String, PhoneNumber> phoneNumbers = new java.util.HashMap<String, PhoneNumber>();
     private java.util.HashMap<String, PhysicalAddress> physicalAddresses = new java.util.HashMap<String, PhysicalAddress>();
     private javaxt.utils.Date birthday;
@@ -240,8 +240,10 @@ public class Contact {
                             if (childNodeName.contains(":")) childNodeName = childNodeName.substring(childNodeName.indexOf(":")+1);
                             if (childNodeName.equalsIgnoreCase("Entry")){
                                 String email = javaxt.xml.DOM.getNodeValue(childNode);
-                                //System.out.println(email);
-                                emailAddresses.add(email.toLowerCase());
+                                try{
+                                    emailAddresses.add(new EmailAddress(email));
+                                }
+                                catch(ExchangeException e){}
                             }
                         }
                     }
@@ -253,7 +255,7 @@ public class Contact {
                             PhoneNumber phoneNumber = new PhoneNumber(childNodes.item(j));
                             phoneNumbers.put(phoneNumber.getType(), phoneNumber);
                         }
-                        catch(Exception e){}
+                        catch(ExchangeException e){}
                     }
                 }
                 else if (nodeName.equalsIgnoreCase("PhysicalAddresses")){
@@ -279,6 +281,12 @@ public class Contact {
         }
     }
 
+
+  //**************************************************************************
+  //** setName
+  //**************************************************************************
+  /** Used to set the first and last name for this contact.
+   */
     protected void setName(String firstName, String lastName) {
 
         if (firstName!=null){
@@ -385,6 +393,41 @@ public class Contact {
             if (val!=null) arr.add(val);
         }
         return arr.toArray(new PhysicalAddress[arr.size()]);
+    }
+
+
+  //**************************************************************************
+  //** setPhysicalAddresses
+  //**************************************************************************
+  /** Used to add phone numbers to a contact.
+   */
+    public void setPhysicalAddresses(PhysicalAddress[] physicalAddresses) {
+
+        if (physicalAddresses==null || physicalAddresses.length==0) return; //removephysicalAddresses() ???
+
+      //See whether any updates are required
+        int numMatches = 0;
+        int total = 0;
+        for (PhysicalAddress physicalAddress : physicalAddresses){
+            if (physicalAddress!=null){
+                total++;
+                String type = physicalAddress.getType();
+                if (this.physicalAddresses.containsKey(type)){
+                    if (this.physicalAddresses.get(type).equals(physicalAddress)) numMatches++;
+                }
+            }
+        }
+
+      //If the input array equals the current list of physicalAddresses, do nothing...
+        if (numMatches==total && numMatches==this.getPhysicalAddresses().length){
+            return;
+        }
+        else {
+            this.physicalAddresses.clear();
+            for (PhysicalAddress physicalAddress : physicalAddresses){
+                addPhysicalAddress(physicalAddress);
+            }
+        }
     }
 
 
@@ -532,6 +575,43 @@ public class Contact {
 
 
   //**************************************************************************
+  //** setPhoneNumbers
+  //**************************************************************************
+  /** Used to add phone numbers to a contact.
+   */
+    public void setPhoneNumbers(PhoneNumber[] phoneNumbers) {
+
+        if (phoneNumbers==null || phoneNumbers.length==0) return; //removephoneNumbers() ???
+
+      //See whether any updates are required
+        int numMatches = 0;
+        int total = 0;
+        for (PhoneNumber phoneNumber : phoneNumbers){
+            System.out.println(phoneNumber);
+            if (phoneNumber!=null){
+                total++;
+                String type = phoneNumber.getType();
+                if (this.phoneNumbers.containsKey(type)){
+                    if (this.phoneNumbers.get(type).equals(phoneNumber)) numMatches++;
+                }
+            }
+        }
+
+      //If the input array equals the current list of phoneNumbers, do nothing...
+        if (numMatches==total && numMatches==this.getPhoneNumbers().length){
+            return;
+        }
+        else {
+            this.phoneNumbers.clear();
+            for (PhoneNumber phoneNumber : phoneNumbers){
+                addPhoneNumber(phoneNumber);
+            }
+        }
+    }
+
+
+
+  //**************************************************************************
   //** addPhoneNumber
   //**************************************************************************
   /** Used to associate a phone number with this contact.
@@ -635,76 +715,134 @@ public class Contact {
 
     
 
+  //**************************************************************************
+  //** getEmailAddresses
+  //**************************************************************************
+  /** Returns an array of email addresses associated with this contact. Note
+   *  that Exchange only allows 3 email addresses per contact.
+   */
+    public EmailAddress[] getEmailAddresses(){
 
-    public String[] getEmailAddresses(){
-        if (emailAddresses.size()==0) return null;
-        return emailAddresses.toArray(new String[emailAddresses.size()]);
+      //Only include non-null values in the array
+        java.util.ArrayList<EmailAddress> arr = new java.util.ArrayList<EmailAddress>();
+        java.util.Iterator<EmailAddress> it = emailAddresses.iterator();
+        while (it.hasNext()){
+            EmailAddress emailAddress = it.next();
+            if (emailAddress!=null) arr.add(emailAddress);
+            
+            if (arr.size()==3) break;
+        }
+        return arr.toArray(new EmailAddress[arr.size()]);
     }
 
 
-    public void setEmailAddresses(String[] emailAddresses){ //String[] categories
+  //**************************************************************************
+  //** setEmailAddresses
+  //**************************************************************************
+  /** Used to add email Addresses to a contact.
+   */
+    public void setEmailAddresses(EmailAddress[] emailAddresses) {
 
-
-        if (emailAddresses==null || emailAddresses.length==0) return; //removeCategories() ???
-
+        if (emailAddresses==null || emailAddresses.length==0) return; //removeEmailAddresses() ???
 
       //See whether any updates are required
         int numMatches = 0;
-        if (emailAddresses.length==this.emailAddresses.size()){
-            for (String emailAddress : emailAddresses){
-                if (emailAddress!=null){
-                    emailAddress = emailAddress.toLowerCase();
-                    if (this.emailAddresses.contains(emailAddress)) numMatches++;
-                }
+        int total = 0;
+        for (EmailAddress emailAddress : emailAddresses){
+            if (emailAddress!=null){
+                total++;
+                if (this.emailAddresses.contains(emailAddress)) numMatches++;
             }
         }
 
-      //If the input array equals the current list of categories, do nothing...
-        if (numMatches==emailAddresses.length){
+      //If the input array equals the current list of emailAddresses, do nothing...
+        if (numMatches==total && numMatches==this.getEmailAddresses().length){
             return;
         }
         else {
             this.emailAddresses.clear();
-            for (String emailAddress : emailAddresses){
+            for (EmailAddress emailAddress : emailAddresses){
                 addEmailAddress(emailAddress);
             }
         }
-
     }
 
-    public void setEmailAddress(String emailAddress){
-        setEmailAddresses(new String[]{emailAddress});
-    }    
 
-    public void addEmailAddress(String emailAddress){
+    public void setEmailAddress(EmailAddress emailAddress){
+        setEmailAddresses(new EmailAddress[]{emailAddress});
+    }
+    
 
+  //**************************************************************************
+  //** addEmailAddress
+  //**************************************************************************
+  /** Used to associate an email address with the contact. Note that Exchange
+   *  only allows 3 email addresses per contact.
+   */
+    public void addEmailAddress(EmailAddress emailAddress) {
 
-        if (emailAddress!=null){
-            emailAddress = emailAddress.toLowerCase().trim();
-            if (!emailAddress.contains("@") || emailAddress.length()==0) emailAddress = null; //Need a stronger validation than this...
-        }
-        if (emailAddress==null) return;
+        if (emailAddresses.size()<3){
 
+            if (id!=null && !emailAddresses.contains(emailAddress)){
 
-        if (id!=null && !emailAddresses.contains(emailAddress)){
-
-            emailAddresses.add(emailAddress);
-            
-            String[] emails = getEmailAddresses();
-            StringBuffer xml = new StringBuffer();
-            for (int i=0; i<emails.length; i++){
-                xml.append("<t:Entry Key=\"EmailAddress" + (i+1) + "\">" + emails[i] + "</t:Entry>");
+                emailAddresses.add(emailAddress);
+                updates.put("EmailAddresses", getEmailUpdates());
             }
-            updates.put("EmailAddresses", xml.toString());
+            else{
+                emailAddresses.add(emailAddress);
+            }
         }
-        else{
-            emailAddresses.add(emailAddress);
-        }
-
     }
 
-    public void removeEmailAddress(String emailAddress){
-        emailAddresses.remove(emailAddress.toLowerCase());
+  //**************************************************************************
+  //** removeEmailAddress
+  //**************************************************************************
+  /** Used delete an email address associated with this contact.
+   */
+    public void removeEmailAddress(EmailAddress emailAddress){
+        //emailAddresses.remove(emailAddress.toLowerCase());
+    }
+    
+
+  //**************************************************************************
+  //** getEmailUpdates
+  //**************************************************************************
+  /** Used to return an xml fragment used to update or delete email addresses.
+   */
+    private String getEmailUpdates(){
+
+        if (emailAddresses.isEmpty()) return "";
+        else{
+            StringBuffer xml = new StringBuffer();
+
+            int x = 1;
+            java.util.Iterator<EmailAddress> it = emailAddresses.iterator();
+            while (it.hasNext()){
+                EmailAddress emailAddress = it.next();                
+                if (emailAddress!=null){
+                    if (x>3) break;
+
+                    xml.append("<t:SetItemField>");
+                    xml.append("<t:IndexedFieldURI FieldURI=\"contacts:EmailAddress\" FieldIndex=\"EmailAddress" + x + "\"/>");
+                    xml.append("<t:Contact><t:EmailAddresses><t:Entry Key=\"EmailAddress" + x + "\">" + emailAddress + "</t:Entry></t:EmailAddresses></t:Contact>");
+                    xml.append("</t:SetItemField>");
+
+                    x++;
+                }
+
+            }
+
+            
+            for (int i=x; i<4; i++){
+                if (id!=null){
+                    xml.append("<t:DeleteItemField>");
+                    xml.append("<t:IndexedFieldURI FieldURI=\"contacts:EmailAddress\" FieldIndex=\"EmailAddress" + i + "\" /> ");
+                    xml.append("</t:DeleteItemField>");
+                }
+            }
+
+            return xml.toString();
+        }
     }
 
 
@@ -1097,7 +1235,7 @@ System.out.println(msg + "\r\n");
         if (company!=null) msg.append("<t:CompanyName>" + company + "</t:CompanyName>");
 
       //Add Email Addresses
-        String[] emails = getEmailAddresses();
+        EmailAddress[] emails = getEmailAddresses();
         if (emails!=null){
             msg.append("<t:EmailAddresses>");
             for (int i=0; i<emails.length; i++){
