@@ -836,9 +836,44 @@ public class Contact {
             
             for (int i=x; i<4; i++){
                 if (id!=null){
+
                     xml.append("<t:DeleteItemField>");
                     xml.append("<t:IndexedFieldURI FieldURI=\"contacts:EmailAddress\" FieldIndex=\"EmailAddress" + i + "\" /> ");
                     xml.append("</t:DeleteItemField>");
+
+
+                  //Apparently fpr emails, you have to delete property sets as well:
+                  //http://social.technet.microsoft.com/Forums/en-US/exchangesvrdevelopment/thread/b57736cf-b007-49f6-b8c6-c4ba00b5cc23/
+                    if (i==1){
+                        for (String propertyID : new String[]{"32896", "32898", "32900"}){
+                            xml.append("<t:DeleteItemField>");
+                            xml.append("<t:ExtendedFieldURI PropertySetId=\"00062004-0000-0000-C000-000000000046\" PropertyId=\"" + propertyID + "\" PropertyType=\"String\"/>");
+                            xml.append("</t:DeleteItemField>");
+                        }                        
+                        xml.append("<t:DeleteItemField>");
+                        xml.append("<t:ExtendedFieldURI PropertySetId=\"00062004-0000-0000-C000-000000000046\" PropertyId=\"32901\" PropertyType=\"Binary\"/>");
+                        xml.append("</t:DeleteItemField>");
+                    }
+                    if (i==2){
+                        for (String propertyID : new String[]{"32912", "32914", "32916"}){
+                            xml.append("<t:DeleteItemField>");
+                            xml.append("<t:ExtendedFieldURI PropertySetId=\"00062004-0000-0000-C000-000000000046\" PropertyId=\"" + propertyID + "\" PropertyType=\"String\"/>");
+                            xml.append("</t:DeleteItemField>");
+                        }
+                        xml.append("<t:DeleteItemField>");
+                        xml.append("<t:ExtendedFieldURI PropertySetId=\"00062004-0000-0000-C000-000000000046\" PropertyId=\"32917\" PropertyType=\"Binary\"/>");
+                        xml.append("</t:DeleteItemField>");
+                    }
+                    if (i==3){
+                        for (String propertyID : new String[]{"32928", "32930", "32932"}){
+                            xml.append("<t:DeleteItemField>");
+                            xml.append("<t:ExtendedFieldURI PropertySetId=\"00062004-0000-0000-C000-000000000046\" PropertyId=\"" + propertyID + "\" PropertyType=\"String\"/>");
+                            xml.append("</t:DeleteItemField>");
+                        }
+                        xml.append("<t:DeleteItemField>");
+                        xml.append("<t:ExtendedFieldURI PropertySetId=\"00062004-0000-0000-C000-000000000046\" PropertyId=\"32933\" PropertyType=\"Binary\"/>");
+                        xml.append("</t:DeleteItemField>");
+                    }
                 }
             }
 
@@ -1010,15 +1045,28 @@ public class Contact {
     }
 
 
+
+  //**************************************************************************
+  //** getCategories
+  //**************************************************************************
+  /** Used to add categories to a contact.
+   */
+    public String[] getCategories(){
+        return categories.toArray(new String[categories.size()]);
+    }
+
+
   //**************************************************************************
   //** setCategories
   //**************************************************************************
   /** Used to add categories to a contact.
    */
     public void setCategories(String[] categories){
-        
-        if (categories==null || categories.length==0) return; //removeCategories() ???
 
+        if (categories==null || categories.length==0){
+            removeCategories();
+            return;
+        }
 
       //See whether any updates are required
         int numMatches = 0;
@@ -1077,10 +1125,46 @@ public class Contact {
         }
     }
 
-    public String[] getCategories(){
-        return categories.toArray(new String[categories.size()]);
+
+  //**************************************************************************
+  //** removeCategory
+  //**************************************************************************
+  /**  Used to remove a category associated with this contact.
+   */
+    public void removeCategory(String category){
+
+        if (category==null) return;
+        category = category.trim();
+
+        String obj = null;
+        java.util.Iterator<String> it = categories.iterator();
+        while (it.hasNext()){
+            String val = it.next();
+            if (val.equalsIgnoreCase(category)){
+                obj = val;
+                break;
+            }
+        }
+
+        if (obj!=null){
+            categories.remove(obj);
+            setCategories(categories.toArray(new String[categories.size()]));
+        }
     }
 
+
+  //**************************************************************************
+  //** removeCategories
+  //**************************************************************************
+  /**  Used to remove all categories associated with this contact.
+   */
+    public void removeCategories(){
+        if (id!=null && !categories.isEmpty()){
+            updates.put("Categories", null);
+        }
+
+        categories.clear();
+    }
    
 
   //**************************************************************************
