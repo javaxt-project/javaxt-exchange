@@ -410,10 +410,12 @@ public class Contact {
         int total = 0;
         for (PhysicalAddress physicalAddress : physicalAddresses){
             if (physicalAddress!=null){
-                total++;
-                String type = physicalAddress.getType();
-                if (this.physicalAddresses.containsKey(type)){
-                    if (this.physicalAddresses.get(type).equals(physicalAddress)) numMatches++;
+                if (!physicalAddress.isEmpty()){
+                    total++;
+                    String type = physicalAddress.getType();
+                    if (this.physicalAddresses.containsKey(type)){
+                        if (this.physicalAddresses.get(type).equals(physicalAddress)) numMatches++;
+                    }
                 }
             }
         }
@@ -437,7 +439,7 @@ public class Contact {
   /** Used to associate a mailing address with this contact.
    */
     public void addPhysicalAddress(PhysicalAddress address){
-        
+
         if (address.isEmpty()){
             removePhysicalAddress(address);
         }
@@ -587,7 +589,6 @@ public class Contact {
         int numMatches = 0;
         int total = 0;
         for (PhoneNumber phoneNumber : phoneNumbers){
-            System.out.println(phoneNumber);
             if (phoneNumber!=null){
                 total++;
                 String type = phoneNumber.getType();
