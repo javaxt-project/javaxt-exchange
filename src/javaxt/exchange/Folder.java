@@ -11,6 +11,7 @@ package javaxt.exchange;
 public class Folder {
 
     private String id;
+    private String changeKey;
     private Integer count;
 
     protected Folder(){}
@@ -23,6 +24,9 @@ public class Folder {
    *  @param folderName Name of the exchange folder (e.g. inbox, contacts, etc).
    */
     public Folder(String folderName, Connection conn) throws ExchangeException {
+
+        folderName = getDistinguishedFolderId(folderName);
+
         String msg =
         "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
         + "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:t=\"http://schemas.microsoft.com/exchange/services/2006/types\">"
@@ -55,10 +59,13 @@ public class Folder {
 
 
     private void parseXML(org.w3c.dom.Document xml){
-        this.id = javaxt.xml.DOM.getAttributeValue(xml.getElementsByTagName("t:FolderId").item(0), "Id");
-        String count = javaxt.xml.DOM.getNodeValue(xml.getElementsByTagName("t:TotalCount").item(0));
 
+        org.w3c.dom.Node folderID = javaxt.xml.DOM.getElementsByTagName("FolderId", xml)[0]; //xml.getElementsByTagName("t:FolderId").item(0);
+        this.id = javaxt.xml.DOM.getAttributeValue(folderID, "Id");
+        this.changeKey = javaxt.xml.DOM.getAttributeValue(folderID, "ChangeKey");
+        
         try{
+            String count = javaxt.xml.DOM.getNodeValue(xml.getElementsByTagName("t:TotalCount").item(0));
             this.count = javaxt.utils.string.cint(count);
         }
         catch(Exception e){
@@ -67,6 +74,10 @@ public class Folder {
 
     public String getID(){
         return id;
+    }
+
+    public String getChangeKey(){
+        return changeKey;
     }
 
     public Integer getCount(){
@@ -113,4 +124,47 @@ public class Folder {
         
         return conn.execute(msg);
     }
+
+
+    public static String[] getDistinguishedFolderIds(){
+        return DistinguishedFolderIds;
+    }
+
+    public static String getDistinguishedFolderId(String folderName){
+        for (String folderID : DistinguishedFolderIds){
+            if (folderID.equalsIgnoreCase(folderName)) return folderID;
+        }
+        return null;
+    }
+
+    //http://msdn.microsoft.com/en-us/library/exchangewebservices.distinguishedfolderidnametype%28v=exchg.140%29.aspx
+    private static String[] DistinguishedFolderIds = new String[]{
+        "archivedeleteditems",
+        "archivemsgfolderroot",
+        "archiverecoverableitemsdeletions",
+        "archiverecoverableitemspurges",
+        "archiverecoverableitemsroot",
+        "archiverecoverableitemsversions",
+        "archiveroot",
+        "calendar",  //Represents the Calendar folder.
+        "contacts",  //Represents the Contacts folder.
+        "deleteditems",  //Represents the Deleted Items folder.
+        "drafts",  //Represents the Drafts folder.
+        "inbox",  //Represents the Inbox folder.
+        "journal",  //Represents the Journal folder.
+        "junkemail",  //Represents the Junk E-mail folder.
+        "msgfolderroot",  //Represents the message folder root.
+        "notes",  //Represents the Notes folder.
+        "outbox",  //Represents the Outbox folder.
+        "publicfoldersroot",
+        "recoverableitemsdeletions",
+        "recoverableitemspurges",
+        "recoverableitemsroot",
+        "recoverableitemsversions",
+        "root",  //Represents the root of the mailbox.
+        "searchfolders",  //Represents the Search Folders folder. This is also an alias for the Finder folder.
+        "sentitems",  //Represents the Sent Items folder.
+        "tasks",  //Represents the Tasks folder.
+        "voicemail"  //Represents the Voice Mail folder.
+    };
 }

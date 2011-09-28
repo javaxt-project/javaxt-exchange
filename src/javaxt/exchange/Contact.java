@@ -1172,13 +1172,13 @@ public class Contact {
   //**************************************************************************
   /**  Used to save/update a contact. Returns the Exchange ID for the item.
    */
-    public String save(Connection conn) throws ExchangeException{
+    public String save(Connection conn) throws ExchangeException {
 
         if (id==null){
-            return addContact(conn);
+            return create(conn);
         }
         else{
-            updateContact(conn);
+            update(conn);
             return id;
         }
     }
@@ -1189,7 +1189,7 @@ public class Contact {
   //**************************************************************************
   /** Used to update the contact.
    */
-    private void updateContact(Connection conn) throws ExchangeException {
+    private void update(Connection conn) throws ExchangeException {
 
         if (updates.isEmpty()) return;
 
@@ -1259,12 +1259,12 @@ System.out.println(msg + "\r\n");
 
 
   //**************************************************************************
-  //** addContact
+  //** create
   //**************************************************************************
   /** Used to create a new contact. Returns an id for the newly created
    *  contact or null is there was an error.
    */
-    private String addContact(Connection conn) throws ExchangeException {
+    private String create(Connection conn) throws ExchangeException {
 
         StringBuffer msg = new StringBuffer();        
         msg.append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
