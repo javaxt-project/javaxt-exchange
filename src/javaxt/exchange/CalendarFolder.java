@@ -23,6 +23,26 @@ public class CalendarFolder extends Folder {
     }
 
 
+    public CalendarEvent[] getEvents() throws ExchangeException {
+
+        java.util.ArrayList<CalendarEvent> events = new java.util.ArrayList<CalendarEvent>();
+
+        int offset = 0;
+        int maxRecords = 25;
+        while(true){
+
+            CalendarEvent[] arr = getEvents(maxRecords, offset);
+            for (int i=0; i<arr.length; i++){
+                events.add(arr[i]);
+            }
+            if (arr.length<maxRecords) break;
+            else offset+=maxRecords;
+        }
+
+        return events.toArray(new CalendarEvent[events.size()]);
+    }
+
+
     public CalendarEvent[] getEvents(int numEntries, int offset) throws ExchangeException {
 
         java.util.ArrayList<CalendarEvent> events = new java.util.ArrayList<CalendarEvent>();

@@ -9,50 +9,11 @@ package javaxt.exchange;
  *
  ******************************************************************************/
 
-public class Contact {
+public class Contact extends FolderItem {
 
 
     /*
-  //This is an ordered list of all the contact properties
-    private String MimeContent
-    private String ItemId
-    private String ParentFolderId
-    private String ItemClass
-    private String Subject
-    private String Sensitivity
-    private String Body
-    private String Attachments
-    private String DateTimeReceived
-    private String Size
-    private String Categories
-    private String Importance
-    private String InReplyTo
-    private String IsSubmitted
-    private String IsDraft
-    private String IsFromMe
-    private String IsResend
-    private String IsUnmodified
-    private String InternetMessageHeaders
-    private String DateTimeSent
-    private String DateTimeCreated
-    private String ResponseObjects
-    private String ReminderDueBy
-    private String ReminderIsSet
-    private String ReminderMinutesBeforeStart
-    private String DisplayCc
-    private String DisplayTo
-    private String HasAttachments
-    private String ExtendedProperty
-    private String Culture
-    private String EffectiveRights
-    private String LastModifiedName
-    private String LastModifiedTime
-    private String IsAssociated
-    private String WebClientReadFormQueryString
-    private String WebClientEditFormQueryString
-    private String ConversationId
-    private String UniqueBody
-
+  //This is an ordered list of all the contact properties    
     private String FileAs
     private String FileAsMapping
     private String DisplayName
@@ -87,31 +48,15 @@ public class Contact {
      */
 
 
-    private String id;
-    //private String changeKey;
     private String firstName;
     private String lastName;
     private String fullName;
     private String company;
     private String title;
-    private java.util.HashSet<String> categories = new java.util.HashSet<String>();
     private java.util.ArrayList<EmailAddress> emailAddresses = new java.util.ArrayList<EmailAddress>();
     private java.util.HashMap<String, PhoneNumber> phoneNumbers = new java.util.HashMap<String, PhoneNumber>();
     private java.util.HashMap<String, PhysicalAddress> physicalAddresses = new java.util.HashMap<String, PhysicalAddress>();
     private javaxt.utils.Date birthday;
-    private java.util.HashMap<String, String> updates = new java.util.HashMap<String, String>();
-
-
-  //**************************************************************************
-  //** resetUpdates
-  //**************************************************************************
-  /** Calls to 'add' and 'set' methods in this class are recorded in a hashmap.
-   *  The hashmap is later used when updating a contact via the save() method.
-   *  Use this method to reset the list of updates. 
-   */
-    protected void resetUpdates(){
-        updates.clear();
-    }
 
 
   //**************************************************************************
@@ -151,17 +96,9 @@ public class Contact {
   /** Creates a new instance of this class
    */
     public Contact(String exchangeID, Connection conn) throws ExchangeException{
-
-        org.w3c.dom.Document xml = Folder.getItem(exchangeID, conn);
-        //new javaxt.io.File("/temp/exchange-getitem2.xml").write(xml);
-        org.w3c.dom.NodeList nodes = xml.getElementsByTagName("t:Contact");
-        for (int i=0; i<nodes.getLength(); i++){
-            org.w3c.dom.Node node = nodes.item(i);
-            if (node.getNodeType()==1) parseContact(node);
-        }
+        super(exchangeID, "Contact", conn);
+        parseContact();
     }
-
-
 
 
   //**************************************************************************
@@ -182,7 +119,8 @@ public class Contact {
    *  FindItemResponseMessage.
    */
     protected Contact(org.w3c.dom.Node contactNode) {
-        parseContact(contactNode);
+        super(contactNode);
+        parseContact();
     }
 
 
@@ -191,18 +129,14 @@ public class Contact {
   //**************************************************************************
   /** Used to parse an xml node with contact information.
    */
-    private void parseContact(org.w3c.dom.Node contactNode){
-        org.w3c.dom.NodeList outerNodes = contactNode.getChildNodes();
+    private void parseContact(){
+        org.w3c.dom.NodeList outerNodes = this.getChildNodes();
         for (int i=0; i<outerNodes.getLength(); i++){
             org.w3c.dom.Node outerNode = outerNodes.item(i);
             if (outerNode.getNodeType()==1){
                 String nodeName = outerNode.getNodeName();
                 if (nodeName.contains(":")) nodeName = nodeName.substring(nodeName.indexOf(":")+1);
-                if (nodeName.equalsIgnoreCase("ItemId")){
-                    id = javaxt.xml.DOM.getAttributeValue(outerNode, "Id");
-                    //changeKey = javaxt.xml.DOM.getAttributeValue(outerNode, "ChangeKey");
-                }
-                else if(nodeName.equalsIgnoreCase("CompanyName")){
+                if (nodeName.equalsIgnoreCase("CompanyName")){
                     company = javaxt.xml.DOM.getNodeValue(outerNode);
                 }
                 else if(nodeName.equalsIgnoreCase("JobTitle")){
@@ -265,15 +199,6 @@ public class Contact {
                         if (childNode.getNodeType()==1){
                             PhysicalAddress address = new PhysicalAddress(childNode);
                             physicalAddresses.put(address.getType(), address);
-                        }
-                    }
-                }
-                else if (nodeName.equalsIgnoreCase("Categories")){
-                    org.w3c.dom.NodeList childNodes = outerNode.getChildNodes();
-                    for (int j=0; j<childNodes.getLength(); j++){
-                        org.w3c.dom.Node childNode = childNodes.item(j);
-                        if (childNode.getNodeType()==1){
-                            categories.add(childNode.getTextContent());
                         }
                     }
                 }
@@ -1031,141 +956,11 @@ public class Contact {
 
 
 
-    public void setExchangeID(String id){
-        if (id!=null){
-            id = id.trim();
-            if (id.length()<25) id = null;
-        }
-        this.id = id;
-    }
-
-
-    public String getExchangeID(){
-        return id;
-    }
 
 
 
-  //**************************************************************************
-  //** getCategories
-  //**************************************************************************
-  /** Used to add categories to a contact.
-   */
-    public String[] getCategories(){
-        return categories.toArray(new String[categories.size()]);
-    }
 
 
-  //**************************************************************************
-  //** setCategories
-  //**************************************************************************
-  /** Used to add categories to a contact.
-   */
-    public void setCategories(String[] categories){
-
-        if (categories==null || categories.length==0){
-            removeCategories();
-            return;
-        }
-
-      //See whether any updates are required
-        int numMatches = 0;
-        if (categories.length==this.categories.size()){
-            for (String category : categories){
-                if (category!=null){
-                    if (this.categories.contains(category)) numMatches++;
-                }
-            }
-        }
-
-      //If the input array equals the current list of categories, do nothing...
-        if (numMatches==categories.length){
-            return;
-        }
-        else {
-            this.categories.clear();
-            for (String category : categories){
-                addCategory(category);
-            }
-        }
-    }
-
-
-    public void setCategory(String category){
-        setCategories(new String[]{category});
-    }
-
-  //**************************************************************************
-  //** addCategory
-  //**************************************************************************
-  /** Used to add a category to a contact.
-   */
-    public void addCategory(String category){
-
-        if (category!=null){
-            category = category.trim();
-            if (category.length()==0) category = null;
-        }
-        if (category==null) return;
-
-
-        if (id!=null && !categories.contains(category)){
-
-            categories.add(category);
-            
-            StringBuffer xml = new StringBuffer();
-            java.util.Iterator<String> it = categories.iterator();
-            while (it.hasNext()){
-                xml.append("<t:String>" + it.next() + "</t:String>");
-            }
-            updates.put("Categories", xml.toString());
-        }
-        else{
-            categories.add(category);
-        }
-    }
-
-
-  //**************************************************************************
-  //** removeCategory
-  //**************************************************************************
-  /**  Used to remove a category associated with this contact.
-   */
-    public void removeCategory(String category){
-
-        if (category==null) return;
-        category = category.trim();
-
-        String obj = null;
-        java.util.Iterator<String> it = categories.iterator();
-        while (it.hasNext()){
-            String val = it.next();
-            if (val.equalsIgnoreCase(category)){
-                obj = val;
-                break;
-            }
-        }
-
-        if (obj!=null){
-            categories.remove(obj);
-            setCategories(categories.toArray(new String[categories.size()]));
-        }
-    }
-
-
-  //**************************************************************************
-  //** removeCategories
-  //**************************************************************************
-  /**  Used to remove all categories associated with this contact.
-   */
-    public void removeCategories(){
-        if (id!=null && !categories.isEmpty()){
-            updates.put("Categories", null);
-        }
-
-        categories.clear();
-    }
-   
 
   //**************************************************************************
   //** save

@@ -8,13 +8,21 @@ package javaxt.exchange;
  *
  ******************************************************************************/
 
-public class CalendarEvent {
+public class CalendarEvent extends FolderItem {
 
-    private String id;
     private String subject;
     private javaxt.utils.Date startTime;
     private javaxt.utils.Date endTime;
 
+  //**************************************************************************
+  //** Constructor
+  //**************************************************************************
+  /** Creates a new instance of this class
+   */
+    public CalendarEvent(String exchangeID, Connection conn) throws ExchangeException{
+        super(exchangeID, "CalendarItem", conn);
+        parseCalendarItem();
+    }
 
   //**************************************************************************
   //** Constructor
@@ -22,7 +30,8 @@ public class CalendarEvent {
   /** Creates a new instance of CalendarEvent. */
 
     public CalendarEvent(org.w3c.dom.Node calendarItemNode) {
-        parseContact(calendarItemNode);
+        super(calendarItemNode);
+        parseCalendarItem();
     }
 
 
@@ -31,21 +40,15 @@ public class CalendarEvent {
   //**************************************************************************
   /** Used to parse an xml node with event information.
    */
-    private void parseContact(org.w3c.dom.Node calendarItemNode){
-        org.w3c.dom.NodeList outerNodes = calendarItemNode.getChildNodes();
+    private void parseCalendarItem(){
+        org.w3c.dom.NodeList outerNodes = this.getChildNodes();
         for (int i=0; i<outerNodes.getLength(); i++){
             org.w3c.dom.Node outerNode = outerNodes.item(i);
             if (outerNode.getNodeType()==1){
                 String nodeName = outerNode.getNodeName();
                 if (nodeName.contains(":")) nodeName = nodeName.substring(nodeName.indexOf(":")+1);
-                if (nodeName.equalsIgnoreCase("ItemId")){
-                    id = javaxt.xml.DOM.getAttributeValue(outerNode, "Id");
-                    //changeKey = javaxt.xml.DOM.getAttributeValue(outerNode, "ChangeKey");
-                }
-                else if(nodeName.equalsIgnoreCase("Subject")){
-                    subject = javaxt.xml.DOM.getNodeValue(outerNode);
-                }
-                else if(nodeName.equalsIgnoreCase("Start")){
+
+                if(nodeName.equalsIgnoreCase("Start")){
                     javaxt.utils.Date date = new javaxt.utils.Date(javaxt.xml.DOM.getNodeValue(outerNode));
                     if (!date.failedToParse()) startTime = date;
                 }
@@ -57,14 +60,6 @@ public class CalendarEvent {
         }
     }
 
-
-    public String getID(){
-        return id;
-    }
-
-    public String getSubject(){
-        return subject;
-    }
 
     public javaxt.utils.Date getStartTime(){
         return startTime;
@@ -86,6 +81,49 @@ public class CalendarEvent {
         return endTime.compareTo(startTime, units);
     }
 
+
+    
+    private String create(Connection conn) throws ExchangeException {
+
+        StringBuffer msg = new StringBuffer();
+        msg.append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
+        msg.append("<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:t=\"http://schemas.microsoft.com/exchange/services/2006/types\" xmlns:m=\"http://schemas.microsoft.com/exchange/services/2006/messages\">");
+        //"<soap:Header>"<t:RequestServerVersion Version=\"Exchange2007_SP1\"/></soap:Header>"
+        msg.append("<soap:Body><m:CreateItem>");
+        msg.append("<m:SavedItemFolderId>");
+        msg.append("<t:DistinguishedFolderId Id=\"calendar\" />"); //msg.append("<t:FolderId Id=\"" + folderID + "\"/>");
+        msg.append("</m:SavedItemFolderId>");
+        msg.append("<m:Items>");
+        msg.append("<t:CalendarItem>");
+
+
+      //Add categories
+        if (!categories.isEmpty()){
+            msg.append("<t:Categories>");
+            java.util.Iterator<String> it = categories.iterator();
+            while (it.hasNext()){
+                msg.append("<t:String>" + it.next() + "</t:String>");
+            }
+            msg.append("</t:Categories>");
+        }
+
+
+        msg.append("</t:CalendarItem>");
+        msg.append("</m:Items>");
+        msg.append("</m:CreateItem>");
+        msg.append("</soap:Body>");
+        msg.append("</soap:Envelope>");
+
+
+
+        org.w3c.dom.Document xml = conn.execute(msg.toString());
+        org.w3c.dom.NodeList nodes = xml.getElementsByTagName("t:ItemId");
+        if (nodes!=null && nodes.getLength()>0){
+            id = javaxt.xml.DOM.getAttributeValue(nodes.item(0), "Id");
+        }
+
+        return id;
+    }
 
     
   //**************************************************************************
