@@ -96,7 +96,7 @@ public class Contact extends FolderItem {
   /** Creates a new instance of this class
    */
     public Contact(String exchangeID, Connection conn) throws ExchangeException{
-        super(exchangeID, "Contact", conn);
+        super(exchangeID, conn);
         parseContact();
     }
 
@@ -214,16 +214,8 @@ public class Contact extends FolderItem {
    */
     protected void setName(String firstName, String lastName) {
 
-        if (firstName!=null){
-            firstName = firstName.trim();
-            if (firstName.length()==0) firstName = null;
-        }
-
-        if (lastName!=null){
-            lastName = lastName.trim();
-            if (lastName.length()==0) lastName = null;
-        }
-
+        firstName = getValue(firstName);
+        lastName = getValue(lastName);
 
         if (id!=null) {
             this.firstName = getFirstName();
@@ -247,18 +239,12 @@ public class Contact extends FolderItem {
 
 
     public String getFirstName(){
-        if (firstName!=null){
-            firstName = firstName.trim();
-            if (firstName.length()==0) firstName = null;
-        }
+        firstName = getValue(firstName);
         return firstName;
     }
 
     public String getLastName(){
-        if (lastName!=null){
-            lastName = lastName.trim();
-            if (lastName.length()==0) lastName = null;
-        }
+        lastName = getValue(lastName);
         return lastName;
     }
 
@@ -271,10 +257,7 @@ public class Contact extends FolderItem {
    */
     public void setFullName(String fullName){
 
-        if (fullName!=null){
-            fullName = fullName.trim();
-            if (fullName.length()==0) fullName = null;
-        }
+        fullName = getValue(fullName);
 
         if (id!=null) {
             this.fullName = getFullName();
@@ -813,10 +796,7 @@ public class Contact extends FolderItem {
   /** Used to associate the contact with a company or organization.
    */
     public void setCompanyName(String company){
-        if (company!=null){
-            company = company.trim();
-            if (company.length()==0) company = null;
-        }
+        company = getValue(company);
 
         if (id!=null) {
             if (company==null && this.company!=null) updates.put("CompanyName", null);
@@ -832,10 +812,7 @@ public class Contact extends FolderItem {
   /** Returns the company or organization associated with this contact.
    */
     public String getCompanyName(){
-        if (company!=null){
-            company = company.trim();
-            if (company.length()==0) company = null;
-        }
+        company = getValue(company);
         return company;
     }
 
@@ -927,10 +904,7 @@ public class Contact extends FolderItem {
   /** Used to set the job title.
    */
     public void setTitle(String title){
-        if (title!=null){
-            title = title.trim();
-            if (title.length()==0) title = null;
-        }
+        title = getValue(title);
 
         if (id!=null) {
             this.title = getTitle();
@@ -947,19 +921,9 @@ public class Contact extends FolderItem {
   /** Returns the job title associated with this contact.
    */
     public String getTitle(){
-        if (title!=null){
-            title = title.trim();
-            if (title.length()==0) title = null;
-        }
+        title = getValue(title);
         return title;
     }
-
-
-
-
-
-
-
 
 
   //**************************************************************************
@@ -1188,68 +1152,7 @@ System.out.println(msg + "\r\n");
     }
 
 
-
-
-
-  //**************************************************************************
-  //** formatDate
-  //**************************************************************************
-  /** Used to format a date into a string that Exchange Web Services can
-   *  understand.
-   */
-    private String formatDate(javaxt.utils.Date date){
-        if (date==null) return null;
-        String d = date.toString("yyyy-MM-dd HH:mm:ssZ").replace(" ", "T");
-        return d.substring(0, d.length()-2) + ":" + d.substring(d.length()-2);
-    }
-
-
-
-  //**************************************************************************
-  //** getChangeKey
-  //**************************************************************************
-  /** Used to retrieve the latest ChangeKey for this contact. The ChangeKey is
-   *  required to update an existing contact.
-   */
-    private String getChangeKey(Connection conn){
-
-        try{
-            org.w3c.dom.Document xml = Folder.getItem(id, conn);
-            org.w3c.dom.NodeList nodes = xml.getElementsByTagName("t:Contact");
-            for (int i=0; i<nodes.getLength(); i++){
-                org.w3c.dom.Node node = nodes.item(i);
-                if (node.getNodeType()==1){
-
-                    org.w3c.dom.NodeList outerNodes = node.getChildNodes();
-                    for (int j=0; j<outerNodes.getLength(); j++){
-                        org.w3c.dom.Node outerNode = outerNodes.item(j);
-                        if (outerNode.getNodeType()==1){
-                            String nodeName = outerNode.getNodeName();
-                            if (nodeName.contains(":")) nodeName = nodeName.substring(nodeName.indexOf(":")+1);
-                            if (nodeName.equalsIgnoreCase("ItemId")){
-                                return javaxt.xml.DOM.getAttributeValue(outerNode, "ChangeKey");
-                            }
-                        }
-                    }
-
-                }
-
-            }
-        }
-        catch(ExchangeException e){
-
-        }
-
-        return null;
-    }
-
-
-
-
     public String toString(){
         return this.getFullName();
     }
-
-
-
 }

@@ -1,0 +1,103 @@
+package javaxt.exchange;
+
+//******************************************************************************
+//**  Mailbox Class
+//******************************************************************************
+/**
+ *   Used to represent a mailbox item.
+ *   http://msdn.microsoft.com/en-us/library/aa565036%28v=EXCHG.140%29.aspx
+ *
+ ******************************************************************************/
+
+public class Mailbox {
+
+    private String Name;
+    private String EmailAddress;
+    private String RoutingType;
+    private String MailboxType;
+    private String ItemId;
+
+
+  //**************************************************************************
+  //** Constructor
+  //**************************************************************************
+  /** Creates a new instance of Mailbox. */
+
+    protected Mailbox(org.w3c.dom.Node mailboxNode) {
+        org.w3c.dom.NodeList mailboxItems = mailboxNode.getChildNodes();
+
+        for (int i=0; i<mailboxItems.getLength(); i++){
+            org.w3c.dom.Node node = mailboxItems.item(i);
+            if (node.getNodeType()==1){
+                String nodeName = node.getNodeName();
+                if (nodeName.contains(":")) nodeName =
+                        nodeName.substring(nodeName.indexOf(":")+1);
+
+                if (nodeName.equalsIgnoreCase("Name")){
+                    Name = javaxt.xml.DOM.getNodeValue(node);
+                }
+                else if(nodeName.equalsIgnoreCase("EmailAddress")){
+                    EmailAddress = javaxt.xml.DOM.getNodeValue(node);
+                }
+                else if(nodeName.equalsIgnoreCase("RoutingType")){
+                    RoutingType = javaxt.xml.DOM.getNodeValue(node);
+                }
+                else if(nodeName.equalsIgnoreCase("MailboxType")){
+                    MailboxType = javaxt.xml.DOM.getNodeValue(node);
+                }
+                else if(nodeName.equalsIgnoreCase("ItemId")){
+                    ItemId = javaxt.xml.DOM.getNodeValue(node);
+                }
+            }
+        }
+    }
+
+    public Mailbox(String name, String email){
+        this.Name = name;
+        this.EmailAddress = email;
+    }
+
+
+  //**************************************************************************
+  //** toXML
+  //**************************************************************************
+  /** Returns an xml fragment used to save or update a mail item via Exchange
+   *  Web Services (EWS):<br/>
+   *  http://msdn.microsoft.com/en-us/library/aa563318%28v=exchg.140%29.aspx
+   *
+   *  @param namespace The namespace assigned to the "type". Typically this is
+   *  "t" which corresponds to
+   *  "http://schemas.microsoft.com/exchange/services/2006/types".
+   *  Use a null value is you do not wish to append a namespace.
+   */
+    protected String toXML(String namespace){
+
+      //Update namespace prefix
+        if (namespace!=null){
+            if (!namespace.endsWith(":")) namespace+=":";
+        }
+        else{
+            namespace = "";
+        }
+
+        StringBuffer str = new StringBuffer();
+
+        str.append("<" + namespace + "Mailbox>");
+        if (Name!=null) str.append("<" + namespace + "Name>" + Name + "</" + namespace + "Name>");
+        if (EmailAddress!=null)  str.append("<" + namespace + "EmailAddress>" + EmailAddress + "/" + namespace + "EmailAddress>");
+        if (RoutingType!=null)  str.append("<" + namespace + "RoutingType>" + RoutingType + "/" + namespace + "RoutingType>");
+        if (MailboxType!=null)  str.append("<" + namespace + "MailboxType>" + MailboxType + "/" + namespace + "MailboxType>");
+        if (ItemId!=null)  str.append("<" + namespace + "ItemId>" + ItemId + "/" + namespace + "ItemId>");
+        str.append("</" + namespace + "Mailbox>");
+
+        return str.toString().trim();
+    }
+
+    public String toString(){
+        if (Name!=null && EmailAddress!=null) return Name + " <" + EmailAddress + ">";
+        if (Name!=null) return Name;
+        if (EmailAddress!=null) return EmailAddress;
+        return ItemId; //?
+    }
+
+}

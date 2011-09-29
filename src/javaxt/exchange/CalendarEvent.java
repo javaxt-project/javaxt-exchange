@@ -10,9 +10,10 @@ package javaxt.exchange;
 
 public class CalendarEvent extends FolderItem {
 
-    private String subject;
+    private String location;
     private javaxt.utils.Date startTime;
     private javaxt.utils.Date endTime;
+    private Mailbox organizer;
 
   //**************************************************************************
   //** Constructor
@@ -20,7 +21,7 @@ public class CalendarEvent extends FolderItem {
   /** Creates a new instance of this class
    */
     public CalendarEvent(String exchangeID, Connection conn) throws ExchangeException{
-        super(exchangeID, "CalendarItem", conn);
+        super(exchangeID, conn);
         parseCalendarItem();
     }
 
@@ -47,8 +48,10 @@ public class CalendarEvent extends FolderItem {
             if (outerNode.getNodeType()==1){
                 String nodeName = outerNode.getNodeName();
                 if (nodeName.contains(":")) nodeName = nodeName.substring(nodeName.indexOf(":")+1);
-
-                if(nodeName.equalsIgnoreCase("Start")){
+                if (nodeName.equalsIgnoreCase("Location")){
+                    location = javaxt.xml.DOM.getNodeValue(outerNode);
+                }
+                else if(nodeName.equalsIgnoreCase("Start")){
                     javaxt.utils.Date date = new javaxt.utils.Date(javaxt.xml.DOM.getNodeValue(outerNode));
                     if (!date.failedToParse()) startTime = date;
                 }
@@ -56,10 +59,38 @@ public class CalendarEvent extends FolderItem {
                     javaxt.utils.Date date = new javaxt.utils.Date(javaxt.xml.DOM.getNodeValue(outerNode));
                     if (!date.failedToParse()) endTime = date;
                 }
+                else if(nodeName.equalsIgnoreCase("Organizer")){
+                    org.w3c.dom.Node[] mailbox = javaxt.xml.DOM.getElementsByTagName("Mailbox", outerNode);
+                    if (mailbox.length>0) organizer = new Mailbox(mailbox[0]);
+                }
             }
         }
     }
 
+
+    public String getSubject(){
+        return super.getSubject();
+    }
+
+    public void setSubject(String subject){
+        super.setSubject(subject);
+    }
+
+    public String getBody(){
+        return super.getBody();
+    }
+
+    public void setBody(String body){
+        super.setBody(body);
+    }
+
+    public Mailbox getOrganizer(){
+        return organizer;
+    }
+
+    public void setOrganizer(Mailbox organizer){
+        //this.organizer = organizer;
+    }
 
     public javaxt.utils.Date getStartTime(){
         return startTime;
@@ -81,6 +112,22 @@ public class CalendarEvent extends FolderItem {
         return endTime.compareTo(startTime, units);
     }
 
+
+    public String getLocation(){
+        location = getValue(location);
+        return location;
+    }
+
+    public void setLocation(String location){
+        location = getValue(location);
+
+        if (id!=null) {
+            if (location==null && this.location!=null) updates.put("Location", null);
+            if (location!=null && !location.equals(this.location)) updates.put("Location", location);
+        }
+
+        this.location = location;
+    }
 
     
     private String create(Connection conn) throws ExchangeException {

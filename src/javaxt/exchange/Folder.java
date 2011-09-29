@@ -108,7 +108,7 @@ public class Folder {
     }
 
 
-    protected static org.w3c.dom.Document getItem(String itemID, Connection conn) throws ExchangeException {
+    protected static org.w3c.dom.Node getItem(String itemID, Connection conn) throws ExchangeException {
         String msg =
         "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
         + "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" "
@@ -122,7 +122,22 @@ public class Folder {
         + "</soap:Body>"
         + "</soap:Envelope>";
         
-        return conn.execute(msg);
+        //return conn.execute(msg);
+        org.w3c.dom.Document xml = conn.execute(msg);
+
+        org.w3c.dom.Node[] items = javaxt.xml.DOM.getElementsByTagName("Items", xml);
+        if (items.length>0){
+            org.w3c.dom.NodeList nodes = items[0].getChildNodes();
+            for (int i=0; i<nodes.getLength(); i++){
+                org.w3c.dom.Node node = nodes.item(i);
+                if (node.getNodeType()==1){
+                    return node;
+                }
+            }
+
+        }
+
+        throw new ExchangeException("Failed to find Items");
     }
 
 

@@ -56,6 +56,7 @@ public class FolderItem {
     protected String id;
     //private String changeKey;
     protected String subject;
+    protected String body;
     protected java.util.HashSet<String> categories = new java.util.HashSet<String>();
     protected java.util.HashMap<String, String> updates = new java.util.HashMap<String, String>();
 
@@ -69,28 +70,27 @@ public class FolderItem {
   //**************************************************************************
   /** Creates a new instance of this class
    */
-    protected FolderItem(String exchangeID, String tagName, Connection conn) throws ExchangeException{
-        org.w3c.dom.Document xml = Folder.getItem(exchangeID, conn);
-        org.w3c.dom.Node[] nodes = javaxt.xml.DOM.getElementsByTagName(tagName, xml);
-        if (nodes.length>0) {
-            parseNode(nodes[0]);
-        }
+    protected FolderItem(String exchangeID, Connection conn) throws ExchangeException{
+        this(Folder.getItem(exchangeID, conn));
     }
 
 
   //**************************************************************************
   //** Constructor
   //**************************************************************************
-  /** Creates a new instance of FolderItem. */
-
+  /** Creates a new instance of this class using item node (e.g. "Contact", 
+   * "CalendarItem", etc).
+   */
     protected FolderItem(org.w3c.dom.Node node) {
         parseNode(node);
     }
 
-    protected org.w3c.dom.NodeList getChildNodes(){
-        return this.node.getChildNodes();
-    }
 
+  //**************************************************************************
+  //** parseNode
+  //**************************************************************************
+  /** Used to parse an xml node with item information.
+   */
     private void parseNode(org.w3c.dom.Node node){
         this.node = node;
         org.w3c.dom.NodeList outerNodes = node.getChildNodes();
@@ -119,25 +119,18 @@ public class FolderItem {
         }
     }
 
-    
-    
-    public void setExchangeID(String id){
-        if (id!=null){
-            id = id.trim();
-            if (id.length()<25) id = null;
-        }
-        this.id = id;
+
+  //**************************************************************************
+  //** getChildNodes
+  //**************************************************************************
+  /** Returns the children of the xml node used to instantiate this class.
+   *  Classes that extend this class use the child nodes to extract additional
+   *  item information.
+   */
+    protected org.w3c.dom.NodeList getChildNodes(){
+        return this.node.getChildNodes();
     }
 
-
-    public String getExchangeID(){
-        return id;
-    }
-
-
-    public String getSubject(){
-        return subject;
-    }
 
   //**************************************************************************
   //** resetUpdates
@@ -149,12 +142,82 @@ public class FolderItem {
     protected void resetUpdates(){
         updates.clear();
     }
+    
+  //**************************************************************************
+  //** getExchangeID
+  //**************************************************************************
+  /** Used to get the unique id associated with this item.
+   */
+    public String getExchangeID(){
+        return id;
+    }
+
+
+  //**************************************************************************
+  //** setExchangeID
+  //**************************************************************************
+  /** Used to set/update the id associated with this item.
+   */
+    public void setExchangeID(String id){
+        if (id!=null){
+            id = id.trim();
+            if (id.length()<25) id = null;
+        }
+        this.id = id;
+    }
+
+
+  //**************************************************************************
+  //** getSubject
+  //**************************************************************************
+  /** Returns the subject of this item. Usually, this only applies to mail
+   *  and calendar entries.
+   */
+    protected String getSubject(){
+        subject = getValue(subject);
+        return subject;
+    }
+
+
+    protected void setSubject(String subject){
+        subject = getValue(subject);
+
+        if (id!=null) {
+            if (subject==null && this.subject!=null) updates.put("Subject", null);
+            if (subject!=null && !subject.equals(this.subject)) updates.put("Subject", subject);
+        }
+
+        this.subject = subject;
+    }
+
+
+  //**************************************************************************
+  //** getBody
+  //**************************************************************************
+  /** Returns the body of this item. Usually, this only applies to mail items
+   *  and calendar entries.
+   */
+    protected String getBody(){
+        body = getValue(body);
+        return body;
+    }
+
+    protected void setBody(String body){
+        body = getValue(body);
+
+        if (id!=null) {
+            if (body==null && this.body!=null) updates.put("Body", null);
+            if (body!=null && !body.equals(this.body)) updates.put("Body", body);
+        }
+
+        this.body = body;
+    }
 
 
   //**************************************************************************
   //** getCategories
   //**************************************************************************
-  /** Used to add categories to a contact.
+  /** Returns a list of categories associated with this item.
    */
     public String[] getCategories(){
         return categories.toArray(new String[categories.size()]);
@@ -272,4 +335,56 @@ public class FolderItem {
     }
 
 
+  //**************************************************************************
+  //** getValue
+  //**************************************************************************
+  /** Private method used to normalize a string. This method is called by all
+   *  setters and getters that deal with string values.
+   */
+    protected String getValue(String val){
+        if (val!=null){
+            val = val.trim();
+            if (val.length()==0) val = null;
+        }
+        return val;
+    }
+
+  //**************************************************************************
+  //** formatDate
+  //**************************************************************************
+  /** Used to format a date into a string that Exchange Web Services can
+   *  understand.
+   */
+    protected String formatDate(javaxt.utils.Date date){
+        if (date==null) return null;
+        String d = date.toString("yyyy-MM-dd HH:mm:ssZ").replace(" ", "T");
+        return d.substring(0, d.length()-2) + ":" + d.substring(d.length()-2);
+    }
+
+
+
+  //**************************************************************************
+  //** getChangeKey
+  //**************************************************************************
+  /** Used to retrieve the latest ChangeKey for this contact. The ChangeKey is
+   *  required to update an existing contact.
+   */
+    protected String getChangeKey(Connection conn) throws ExchangeException {
+
+        org.w3c.dom.Node node = Folder.getItem(id, conn);
+        org.w3c.dom.NodeList outerNodes = node.getChildNodes();
+        for (int j=0; j<outerNodes.getLength(); j++){
+            org.w3c.dom.Node outerNode = outerNodes.item(j);
+            if (outerNode.getNodeType()==1){
+                String nodeName = outerNode.getNodeName();
+                if (nodeName.contains(":")) nodeName = nodeName.substring(nodeName.indexOf(":")+1);
+                if (nodeName.equalsIgnoreCase("ItemId")){
+                    return javaxt.xml.DOM.getAttributeValue(outerNode, "ChangeKey");
+                }
+            }
+        }
+
+        throw new ExchangeException("Failed to retrieve ChangeKey");
+
+    }
 }
