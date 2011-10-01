@@ -75,7 +75,13 @@ public class Contact extends FolderItem {
    *  effectively creating a clone.
    */
     public Contact(javaxt.exchange.Contact contact){
+
+      //General information
         this.id = contact.id;
+        this.updates = contact.updates;
+        this.lastModified = contact.lastModified;
+
+      //Contact specific information
         this.firstName = contact.firstName;
         this.lastName = contact.lastName;
         this.fullName = contact.fullName;
@@ -86,7 +92,6 @@ public class Contact extends FolderItem {
         this.phoneNumbers = contact.phoneNumbers;
         this.physicalAddresses = contact.physicalAddresses;
         this.birthday = contact.birthday;
-        this.updates = contact.updates;
     }
 
 
@@ -932,14 +937,9 @@ public class Contact extends FolderItem {
   /**  Used to save/update a contact. Returns the Exchange ID for the item.
    */
     public String save(Connection conn) throws ExchangeException {
-
-        if (id==null){
-            return create(conn);
-        }
-        else{
-            update(conn);
-            return id;
-        }
+        if (id==null) create(conn);
+        else update(conn);
+        return id;
     }
 
 
@@ -1005,14 +1005,8 @@ public class Contact extends FolderItem {
 System.out.println(msg + "\r\n");
 
         updates.clear();
-//if (true) return;
 
         conn.execute(msg.toString());
-        //javaxt.http.Response response = conn.execute(msg.toString());
-
-        //String txt = response.getText();
-        //System.out.println(txt);
-
     }
 
 
@@ -1020,10 +1014,9 @@ System.out.println(msg + "\r\n");
   //**************************************************************************
   //** create
   //**************************************************************************
-  /** Used to create a new contact. Returns an id for the newly created
-   *  contact or null is there was an error.
+  /** Used to create a new contact. 
    */
-    private String create(Connection conn) throws ExchangeException {
+    private void create(Connection conn) throws ExchangeException {
 
         StringBuffer msg = new StringBuffer();        
         msg.append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
@@ -1126,30 +1119,12 @@ System.out.println(msg + "\r\n");
         if (nodes!=null && nodes.getLength()>0){
             id = javaxt.xml.DOM.getAttributeValue(nodes.item(0), "Id");
         }
-        
-        return id;
+
+        if (id==null) throw new ExchangeException("Failed to parse ItemId while saving the contact.");
     }
 
 
-  //**************************************************************************
-  //** delete
-  //**************************************************************************
-  /** Used to delete a contact.
-   */
-    public void delete(Connection conn) throws ExchangeException {
-        String msg =
-        "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
-        + "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:t=\"http://schemas.microsoft.com/exchange/services/2006/types\" xmlns:m=\"http://schemas.microsoft.com/exchange/services/2006/messages\">"
-        //+ "<soap:Header><t:RequestServerVersion Version=\"Exchange2007_SP1\"/></soap:Header>"
-        + "<soap:Body>"
-        + "<m:DeleteItem DeleteType=\"MoveToDeletedItems\">"
-        + "<m:ItemIds>"
-        + "<t:ItemId Id=\"" + id + "\"/></m:ItemIds>" //ChangeKey=\"EQAAABYAAAA9IPsqEJarRJBDywM9WmXKAAV+D0Dq\"
-        + "</m:DeleteItem>"
-        + "</soap:Body>"
-        + "</soap:Envelope>";
-        conn.execute(msg);
-    }
+
 
 
     public String toString(){

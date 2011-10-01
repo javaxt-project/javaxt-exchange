@@ -54,10 +54,11 @@ public class FolderItem {
  */
 
     protected String id;
-    //private String changeKey;
+    protected String changeKey;
     protected String subject;
     protected String body;
     protected java.util.HashSet<String> categories = new java.util.HashSet<String>();
+    protected javaxt.utils.Date lastModified;
     protected java.util.HashMap<String, String> updates = new java.util.HashMap<String, String>();
 
     private org.w3c.dom.Node node;
@@ -65,21 +66,60 @@ public class FolderItem {
     
     protected FolderItem(){}
 
+
   //**************************************************************************
   //** Constructor
   //**************************************************************************
   /** Creates a new instance of this class
    */
     protected FolderItem(String exchangeID, Connection conn) throws ExchangeException{
-        this(Folder.getItem(exchangeID, conn));
+        String msg =
+        "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
+        + "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" "
+            + "xmlns:t=\"http://schemas.microsoft.com/exchange/services/2006/types\" "
+            + "xmlns:m=\"http://schemas.microsoft.com/exchange/services/2006/messages\">"
+        //+ "<soap:Header><t:RequestServerVersion Version=\"Exchange2007\"/></soap:Header>"
+        + "<soap:Body>"
+        + "<m:GetItem>"
+        + "<m:ItemShape>"
+                + "<t:BaseShape>AllProperties</t:BaseShape>"
+                + "<t:AdditionalProperties>"
+                + "<t:FieldURI FieldURI=\"item:ItemClass\"/>"
+                //+ "<t:FieldURI FieldURI=\"item:LastModifiedTime\"/>" //value="item:LastModifiedTime" //<--This doesn't work...
+                + "<t:ExtendedFieldURI PropertyTag=\"0x3008\" PropertyType=\"SystemTime\" />" //<--This returns the LastModifiedTime!
+                + "</t:AdditionalProperties>"
+        + "</m:ItemShape>"
+        + "<m:ItemIds><t:ItemId Id=\"" + exchangeID + "\"/></m:ItemIds>"
+        + "</m:GetItem>"
+        + "</soap:Body>"
+        + "</soap:Envelope>";
+
+
+        org.w3c.dom.Document xml = conn.execute(msg);
+
+        org.w3c.dom.Node[] items = javaxt.xml.DOM.getElementsByTagName("Items", xml);
+        boolean foundItem = false;
+        if (items.length>0){
+            org.w3c.dom.NodeList nodes = items[0].getChildNodes();
+            for (int i=0; i<nodes.getLength(); i++){
+                org.w3c.dom.Node node = nodes.item(i);
+                if (node.getNodeType()==1){
+                    parseNode(node);
+                    foundItem = true;
+                }
+            }
+
+        }
+
+        if (!foundItem) throw new ExchangeException("Failed to find item " + exchangeID);
     }
 
 
   //**************************************************************************
   //** Constructor
   //**************************************************************************
-  /** Creates a new instance of this class using item node (e.g. "Contact", 
-   * "CalendarItem", etc).
+  /** Creates a new instance of this class using
+   *  @param node Item node (e.g. "Contact", "CalendarItem", etc).
    */
     protected FolderItem(org.w3c.dom.Node node) {
         parseNode(node);
@@ -101,11 +141,14 @@ public class FolderItem {
                 if (nodeName.contains(":")) nodeName = nodeName.substring(nodeName.indexOf(":")+1);
                 if (nodeName.equalsIgnoreCase("ItemId")){
                     id = javaxt.xml.DOM.getAttributeValue(outerNode, "Id");
-                    //changeKey = javaxt.xml.DOM.getAttributeValue(outerNode, "ChangeKey");
+                    changeKey = javaxt.xml.DOM.getAttributeValue(outerNode, "ChangeKey");
                 }
                 else if(nodeName.equalsIgnoreCase("Subject")){
                     subject = javaxt.xml.DOM.getNodeValue(outerNode);
-                }                
+                }
+                else if(nodeName.equalsIgnoreCase("Body")){
+                    body = javaxt.xml.DOM.getNodeValue(outerNode);
+                }
                 else if (nodeName.equalsIgnoreCase("Categories")){
                     org.w3c.dom.NodeList childNodes = outerNode.getChildNodes();
                     for (int j=0; j<childNodes.getLength(); j++){
@@ -115,6 +158,43 @@ public class FolderItem {
                         }
                     }
                 }
+                else if(nodeName.equalsIgnoreCase("LastModifiedTime")){
+                    javaxt.utils.Date date = new javaxt.utils.Date(javaxt.xml.DOM.getNodeValue(outerNode));
+                    if (!date.failedToParse()) lastModified = date;
+                }
+                else if (nodeName.equalsIgnoreCase("ExtendedProperty")){
+
+                    org.w3c.dom.Node ExtendedFieldURI = null;
+                    org.w3c.dom.Node Value = null;
+
+                    org.w3c.dom.NodeList childNodes = outerNode.getChildNodes();
+                    for (int j=0; j<childNodes.getLength(); j++){
+                        org.w3c.dom.Node childNode = childNodes.item(j);
+                        if (childNode.getNodeType()==1){
+
+                            String childNodeName = childNode.getNodeName();
+                            if (childNodeName.contains(":")) childNodeName = childNodeName.substring(childNodeName.indexOf(":")+1);
+
+                            if (childNodeName.equalsIgnoreCase("ExtendedFieldURI")){
+                                ExtendedFieldURI = childNode;
+                            }
+                            else if (childNodeName.equalsIgnoreCase("Value")){
+                                Value = childNode;
+                            }
+                        }
+                    }
+
+                    if (ExtendedFieldURI!=null){
+                        String PropertyTag = javaxt.xml.DOM.getAttributeValue(ExtendedFieldURI, "PropertyTag");
+
+                      //Extract last mod date
+                        if (PropertyTag.equalsIgnoreCase("0x3008")){
+                            javaxt.utils.Date date = new javaxt.utils.Date(javaxt.xml.DOM.getNodeValue(Value));
+                            if (!date.failedToParse()) lastModified = date;
+                        }
+                    }
+                }
+
             }
         }
     }
@@ -156,14 +236,55 @@ public class FolderItem {
   //**************************************************************************
   //** setExchangeID
   //**************************************************************************
-  /** Used to set/update the id associated with this item.
+  /** Used to set/update the id associated with this item. This method is
+   *  available to application developers who with to extend this class.
    */
-    public void setExchangeID(String id){
+    protected void setExchangeID(String id){
         if (id!=null){
             id = id.trim();
             if (id.length()<25) id = null;
         }
         this.id = id;
+    }
+
+
+  //**************************************************************************
+  //** getLastModifiedTime
+  //**************************************************************************
+  /** Returns the timestamp for when this item was last modified. Note that
+   *  timestamp is set in the constructor and may not reflect the most recent
+   *  value.
+   */
+    public javaxt.utils.Date getLastModifiedTime(){
+        return lastModified;
+    }
+
+
+    public void setLastModifiedTime(javaxt.utils.Date lastModified){
+        this.lastModified = lastModified;
+    }
+
+    
+  //**************************************************************************
+  //** getChangeKey
+  //**************************************************************************
+  /** Used to retrieve the ChangeKey for this contact. Note that the ChangeKey 
+   *  is set in the constructor and may not reflect the most recent value.
+   */
+    public String getChangeKey(){
+        return changeKey;
+    }
+
+
+  //**************************************************************************
+  //** getChangeKey
+  //**************************************************************************
+  /** Used to retrieve the latest ChangeKey for this contact. This method is
+   *  required to update an item.
+   */
+    protected String getChangeKey(Connection conn) throws ExchangeException {
+        changeKey = new FolderItem(id, conn).changeKey;
+        return changeKey;
     }
 
 
@@ -336,6 +457,27 @@ public class FolderItem {
 
 
   //**************************************************************************
+  //** delete
+  //**************************************************************************
+  /** Used to delete this item.
+   */
+    public void delete(Connection conn) throws ExchangeException {
+        String msg =
+        "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
+        + "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:t=\"http://schemas.microsoft.com/exchange/services/2006/types\" xmlns:m=\"http://schemas.microsoft.com/exchange/services/2006/messages\">"
+        //+ "<soap:Header><t:RequestServerVersion Version=\"Exchange2007_SP1\"/></soap:Header>"
+        + "<soap:Body>"
+        + "<m:DeleteItem DeleteType=\"MoveToDeletedItems\">"
+        + "<m:ItemIds>"
+        + "<t:ItemId Id=\"" + id + "\"/></m:ItemIds>" //ChangeKey=\"EQAAABYAAAA9IPsqEJarRJBDywM9WmXKAAV+D0Dq\"
+        + "</m:DeleteItem>"
+        + "</soap:Body>"
+        + "</soap:Envelope>";
+        conn.execute(msg);
+    }
+
+
+  //**************************************************************************
   //** getValue
   //**************************************************************************
   /** Private method used to normalize a string. This method is called by all
@@ -359,32 +501,5 @@ public class FolderItem {
         if (date==null) return null;
         String d = date.toString("yyyy-MM-dd HH:mm:ssZ").replace(" ", "T");
         return d.substring(0, d.length()-2) + ":" + d.substring(d.length()-2);
-    }
-
-
-
-  //**************************************************************************
-  //** getChangeKey
-  //**************************************************************************
-  /** Used to retrieve the latest ChangeKey for this contact. The ChangeKey is
-   *  required to update an existing contact.
-   */
-    protected String getChangeKey(Connection conn) throws ExchangeException {
-
-        org.w3c.dom.Node node = Folder.getItem(id, conn);
-        org.w3c.dom.NodeList outerNodes = node.getChildNodes();
-        for (int j=0; j<outerNodes.getLength(); j++){
-            org.w3c.dom.Node outerNode = outerNodes.item(j);
-            if (outerNode.getNodeType()==1){
-                String nodeName = outerNode.getNodeName();
-                if (nodeName.contains(":")) nodeName = nodeName.substring(nodeName.indexOf(":")+1);
-                if (nodeName.equalsIgnoreCase("ItemId")){
-                    return javaxt.xml.DOM.getAttributeValue(outerNode, "ChangeKey");
-                }
-            }
-        }
-
-        throw new ExchangeException("Failed to retrieve ChangeKey");
-
     }
 }
