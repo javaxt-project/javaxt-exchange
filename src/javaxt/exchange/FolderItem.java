@@ -224,22 +224,22 @@ public class FolderItem {
     }
     
   //**************************************************************************
-  //** getExchangeID
+  //** getID
   //**************************************************************************
   /** Used to get the unique id associated with this item.
    */
-    public String getExchangeID(){
+    public String getID(){
         return id;
     }
 
 
   //**************************************************************************
-  //** setExchangeID
+  //** setID
   //**************************************************************************
   /** Used to set/update the id associated with this item. This method is
    *  available to application developers who with to extend this class.
    */
-    protected void setExchangeID(String id){
+    protected void setID(String id){
         if (id!=null){
             id = id.trim();
             if (id.length()<25) id = null;

@@ -68,9 +68,13 @@ public class Folder {
     }
     */
 
-    private void parseXML(org.w3c.dom.Document xml){
-        org.w3c.dom.Node folderID = javaxt.xml.DOM.getElementsByTagName("FolderId", xml)[0]; //xml.getElementsByTagName("t:FolderId").item(0);
-        this.id = javaxt.xml.DOM.getAttributeValue(folderID, "Id");
+    private void parseXML(org.w3c.dom.Document xml) throws ExchangeException {
+        org.w3c.dom.Node[] nodes = javaxt.xml.DOM.getElementsByTagName("FolderId", xml);
+        if (nodes.length>0){
+            org.w3c.dom.Node folderID = nodes[0];
+            this.id = javaxt.xml.DOM.getAttributeValue(folderID, "Id");
+        }
+        if (this.id==null || this.id.length()==0) throw new ExchangeException("Failed to parse FolderId.");
     }
 
   //**************************************************************************
@@ -177,7 +181,7 @@ public class Folder {
                 org.w3c.dom.Node node = nodes.item(i);
                 if (node.getNodeType()==1){
                     FolderItem item = new FolderItem(node);
-                    index.put(item.getExchangeID(), item.getLastModifiedTime());
+                    index.put(item.getID(), item.getLastModifiedTime());
                 }
             }
 

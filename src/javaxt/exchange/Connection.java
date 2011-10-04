@@ -49,6 +49,7 @@ public class Connection {
 
         javaxt.http.Response response = request.getResponse();
         int status = response.getStatus();
+        if (status<100) throw new ExchangeException("Failed to connect to Exchange Web Service.");
         if (status>=400){
 
             String errorMessage = response.getErrorMessage();
@@ -59,6 +60,7 @@ public class Connection {
                     errorMessage = responseMessages[0].getTextContent();
                 }
             }
+            if (errorMessage.trim().length()==0) errorMessage = "Failed to connect to Exchange Web Service: " + status + " - " + response.getMessage();
             throw new ExchangeException(errorMessage);
             
         }
@@ -78,6 +80,7 @@ public class Connection {
 
     private String parseError(org.w3c.dom.Document xml){
 
+        if (xml==null) return ("Invalid Server Response");
         org.w3c.dom.Node[] responseMessages = javaxt.xml.DOM.getElementsByTagName("ResponseMessages", xml);
         if (responseMessages.length>0){
             org.w3c.dom.Node responseMessage = responseMessages[0];

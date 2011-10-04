@@ -755,7 +755,7 @@ public class Contact extends FolderItem {
                     xml.append("</t:DeleteItemField>");
 
 
-                  //Apparently fpr emails, you have to delete property sets as well:
+                  //Apparently for emails, you have to delete property sets as well:
                   //http://social.technet.microsoft.com/Forums/en-US/exchangesvrdevelopment/thread/b57736cf-b007-49f6-b8c6-c4ba00b5cc23/
                     if (i==1){
                         for (String propertyID : new String[]{"32896", "32898", "32900"}){

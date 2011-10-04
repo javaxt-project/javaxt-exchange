@@ -57,19 +57,19 @@ public class PhysicalAddress {
                 String value = javaxt.xml.DOM.getNodeValue(childNode).trim();
                 if (value.length()>0){
                     if (childNodeName.equalsIgnoreCase("Street")){
-                        street.add(value);
+                        setStreet(value);
                     }
                     else if (childNodeName.equalsIgnoreCase("City")){
-                        city = value;
+                        setCity(value);
                     }
                     else if (childNodeName.equalsIgnoreCase("State")){
-                        state = value;
+                        setState(value);
                     }
                     else if (childNodeName.equalsIgnoreCase("CountryOrRegion")){
-                        country = value;
+                        setCountry(value);
                     }
                     else if (childNodeName.equalsIgnoreCase("PostalCode")){
-                        postalCode = value;
+                        setPostalCode(value);
                     }
                 }
             }
