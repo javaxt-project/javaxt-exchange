@@ -52,12 +52,16 @@ public class CalendarEvent extends FolderItem {
                     location = javaxt.xml.DOM.getNodeValue(outerNode);
                 }
                 else if(nodeName.equalsIgnoreCase("Start")){
-                    javaxt.utils.Date date = new javaxt.utils.Date(javaxt.xml.DOM.getNodeValue(outerNode));
-                    if (!date.failedToParse()) startTime = date;
+                    try{
+                        startTime = new javaxt.utils.Date(javaxt.xml.DOM.getNodeValue(outerNode));
+                    }
+                    catch(java.text.ParseException e){}
                 }
                 else if(nodeName.equalsIgnoreCase("End")){
-                    javaxt.utils.Date date = new javaxt.utils.Date(javaxt.xml.DOM.getNodeValue(outerNode));
-                    if (!date.failedToParse()) endTime = date;
+                    try{
+                        endTime = new javaxt.utils.Date(javaxt.xml.DOM.getNodeValue(outerNode));
+                    }
+                    catch(java.text.ParseException e){}
                 }
                 else if(nodeName.equalsIgnoreCase("Organizer")){
                     org.w3c.dom.Node[] mailbox = javaxt.xml.DOM.getElementsByTagName("Mailbox", outerNode);

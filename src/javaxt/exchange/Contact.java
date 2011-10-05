@@ -148,8 +148,10 @@ public class Contact extends FolderItem {
                     title = javaxt.xml.DOM.getNodeValue(outerNode);
                 }
                 else if(nodeName.equalsIgnoreCase("Birthday")){
-                    javaxt.utils.Date date = new javaxt.utils.Date(javaxt.xml.DOM.getNodeValue(outerNode));
-                    if (!date.failedToParse()) birthday = date;
+                    try{
+                        birthday = new javaxt.utils.Date(javaxt.xml.DOM.getNodeValue(outerNode));
+                    }
+                    catch(java.text.ParseException e){}
                 }
                 else if (nodeName.equalsIgnoreCase("CompleteName")){
                     org.w3c.dom.NodeList childNodes = outerNode.getChildNodes();
@@ -871,13 +873,10 @@ public class Contact extends FolderItem {
    */
     public void setBirthDay(String birthday){
         javaxt.utils.Date date = null;
-        if (birthday!=null){
+        try{
             date = new javaxt.utils.Date(birthday);
-            if (date.failedToParse()){
-                if (this.birthday!=null) date = this.birthday;
-                else date = null;
-            }
         }
+        catch(java.text.ParseException e){}
         setBirthDay(date);
     }
 

@@ -159,8 +159,10 @@ public class FolderItem {
                     }
                 }
                 else if(nodeName.equalsIgnoreCase("LastModifiedTime")){
-                    javaxt.utils.Date date = new javaxt.utils.Date(javaxt.xml.DOM.getNodeValue(outerNode));
-                    if (!date.failedToParse()) lastModified = date;
+                    try{
+                        lastModified = new javaxt.utils.Date(javaxt.xml.DOM.getNodeValue(outerNode));
+                    }
+                    catch(java.text.ParseException e){}
                 }
                 else if (nodeName.equalsIgnoreCase("ExtendedProperty")){
 
@@ -189,8 +191,10 @@ public class FolderItem {
 
                       //Extract last mod date
                         if (PropertyTag.equalsIgnoreCase("0x3008")){
-                            javaxt.utils.Date date = new javaxt.utils.Date(javaxt.xml.DOM.getNodeValue(Value));
-                            if (!date.failedToParse()) lastModified = date;
+                            try{
+                                lastModified = new javaxt.utils.Date(javaxt.xml.DOM.getNodeValue(Value));
+                            }
+                            catch(java.text.ParseException e){}
                         }
                     }
                 }
