@@ -59,6 +59,8 @@ public class FolderItem {
     protected String body;
     protected java.util.HashSet<String> categories = new java.util.HashSet<String>();
     protected javaxt.utils.Date lastModified;
+
+    /** Hashmap with a list of any pending updates to be made to this item. */
     protected java.util.HashMap<String, String> updates = new java.util.HashMap<String, String>();
 
     private org.w3c.dom.Node node;
@@ -263,6 +265,18 @@ public class FolderItem {
         return lastModified;
     }
 
+    
+
+  //**************************************************************************
+  //** getLastModifiedTime
+  //**************************************************************************
+  /** Returns the timestamp for when this item was last modified.
+   */
+    protected javaxt.utils.Date getLastModifiedTime(Connection conn) throws ExchangeException {
+        lastModified = new FolderItem(id, conn).lastModified;
+        return lastModified;
+    }
+
 
     public void setLastModifiedTime(javaxt.utils.Date lastModified){
         this.lastModified = lastModified;
@@ -345,7 +359,8 @@ public class FolderItem {
   /** Returns a list of categories associated with this item.
    */
     public String[] getCategories(){
-        return categories.toArray(new String[categories.size()]);
+        if (categories.isEmpty()) return null;
+        else return categories.toArray(new String[categories.size()]);
     }
 
 

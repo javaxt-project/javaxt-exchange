@@ -145,7 +145,7 @@ public class PhysicalAddress {
         this.addStreet(street);
     }
     
-    private String getValue(String val){
+    protected String getValue(String val){
         if (val!=null){
             val = val.trim();
             if (val.length()==0) val = null;

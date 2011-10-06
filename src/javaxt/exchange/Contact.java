@@ -307,7 +307,8 @@ public class Contact extends FolderItem {
             PhysicalAddress val = physicalAddresses.get(key);
             if (val!=null) arr.add(val);
         }
-        return arr.toArray(new PhysicalAddress[arr.size()]);
+        if (arr.isEmpty()) return null;
+        else return arr.toArray(new PhysicalAddress[arr.size()]);
     }
 
 
@@ -318,7 +319,10 @@ public class Contact extends FolderItem {
    */
     public void setPhysicalAddresses(PhysicalAddress[] physicalAddresses) {
 
-        if (physicalAddresses==null || physicalAddresses.length==0) return; //removephysicalAddresses() ???
+        if (physicalAddresses==null || physicalAddresses.length==0) {
+            removePhysicalAddresses();
+            return;
+        }
 
       //See whether any updates are required
         int numMatches = 0;
@@ -335,8 +339,11 @@ public class Contact extends FolderItem {
             }
         }
 
+        int numAddresses = 0;
+        if (this.getPhysicalAddresses()!=null) numAddresses = this.getPhysicalAddresses().length;
+
       //If the input array equals the current list of physicalAddresses, do nothing...
-        if (numMatches==total && numMatches==this.getPhysicalAddresses().length){
+        if (numMatches==total && numMatches==numAddresses){
             return;
         }
         else {
@@ -436,6 +443,19 @@ public class Contact extends FolderItem {
     }
 
 
+  //**************************************************************************
+  //** removePhysicalAddresses
+  //**************************************************************************
+  /** Deletes all addresses associated with this contact.
+   */
+    public void removePhysicalAddresses(){
+        PhysicalAddress[] addresses = getPhysicalAddresses();
+        if (addresses!=null){
+            for (PhysicalAddress address : addresses){
+                removePhysicalAddress(address);
+            }
+        }
+    }
 
 
   //**************************************************************************
@@ -487,7 +507,8 @@ public class Contact extends FolderItem {
             PhoneNumber val = phoneNumbers.get(key);
             if (val!=null) arr.add(val);
         }
-        return arr.toArray(new PhoneNumber[arr.size()]);
+        if (arr.isEmpty()) return null;
+        else return arr.toArray(new PhoneNumber[arr.size()]);
     }
 
 
@@ -498,7 +519,10 @@ public class Contact extends FolderItem {
    */
     public void setPhoneNumbers(PhoneNumber[] phoneNumbers) {
 
-        if (phoneNumbers==null || phoneNumbers.length==0) return; //removephoneNumbers() ???
+        if (phoneNumbers==null || phoneNumbers.length==0){
+            removePhoneNumbers();
+            return;
+        }
 
       //See whether any updates are required
         int numMatches = 0;
@@ -513,8 +537,11 @@ public class Contact extends FolderItem {
             }
         }
 
+        int numPhoneNumbers = 0;
+        if (this.getPhoneNumbers()!=null) numPhoneNumbers = this.getPhoneNumbers().length;
+
       //If the input array equals the current list of phoneNumbers, do nothing...
-        if (numMatches==total && numMatches==this.getPhoneNumbers().length){
+        if (numMatches==total && numMatches==numPhoneNumbers){
             return;
         }
         else {
@@ -595,7 +622,18 @@ public class Contact extends FolderItem {
         
     }
 
+  //**************************************************************************
+  //** removePhoneNumbers
+  //**************************************************************************
 
+    public void removePhoneNumbers(){
+        PhoneNumber[] phoneNumbers = getPhoneNumbers();
+        if (phoneNumbers!=null){
+            for (PhoneNumber phoneNumber : phoneNumbers){
+                removePhoneNumber(phoneNumber);
+            }
+        }
+    }
 
 
     private String getPhoneUpdates(){
@@ -648,7 +686,8 @@ public class Contact extends FolderItem {
             
             if (arr.size()==3) break;
         }
-        return arr.toArray(new EmailAddress[arr.size()]);
+        if (arr.isEmpty()) return null;
+        else return arr.toArray(new EmailAddress[arr.size()]);
     }
 
 
@@ -659,7 +698,10 @@ public class Contact extends FolderItem {
    */
     public void setEmailAddresses(EmailAddress[] emailAddresses) {
 
-        if (emailAddresses==null || emailAddresses.length==0) return; //removeEmailAddresses() ???
+        if (emailAddresses==null || emailAddresses.length==0){
+            removeEmailAddresses();
+            return;
+        }
 
       //See whether any updates are required
         int numMatches = 0;
@@ -671,8 +713,11 @@ public class Contact extends FolderItem {
             }
         }
 
+        int numEmails = 0;
+        if (this.getEmailAddresses()!=null) numEmails = this.getEmailAddresses().length;
+
       //If the input array equals the current list of emailAddresses, do nothing...
-        if (numMatches==total && numMatches==this.getEmailAddresses().length){
+        if (numMatches==total && numMatches==numEmails){
             return;
         }
         else {
@@ -717,6 +762,21 @@ public class Contact extends FolderItem {
    */
     public void removeEmailAddress(EmailAddress emailAddress){
         //emailAddresses.remove(emailAddress.toLowerCase());
+    }
+
+
+  //**************************************************************************
+  //** removeEmailAddresses
+  //**************************************************************************
+  /** Used to remove all email addresses associated with this contact.
+   */
+    public void removeEmailAddresses(){
+        EmailAddress[] addresses = getEmailAddresses();
+        if (addresses!=null){
+            for (EmailAddress address : addresses){
+                removeEmailAddress(address);
+            }
+        }
     }
     
 
@@ -1056,19 +1116,19 @@ System.out.println(msg + "\r\n");
 
 
       //Add categories
-        if (!categories.isEmpty()){
+        String[] categories = this.getCategories();
+        if (categories!=null){
             msg.append("<t:Categories>");
-            java.util.Iterator<String> it = categories.iterator();
-            while (it.hasNext()){
-                msg.append("<t:String>" + it.next() + "</t:String>");
+            for (String category : categories){
+                msg.append("<t:String>" + category + "</t:String>");
             }
             msg.append("</t:Categories>");
         }
 
         msg.append("<t:FileAsMapping>LastCommaFirst</t:FileAsMapping>");
         msg.append("<t:DisplayName>" + getFullName() + "</t:DisplayName>");
-        if (firstName!=null) msg.append("<t:GivenName>" + firstName + "</t:GivenName>");
-        if (company!=null) msg.append("<t:CompanyName>" + company + "</t:CompanyName>");
+        if (this.getFirstName()!=null) msg.append("<t:GivenName>" + firstName + "</t:GivenName>");
+        if (this.getCompanyName()!=null) msg.append("<t:CompanyName>" + company + "</t:CompanyName>");
 
       //Add Email Addresses
         EmailAddress[] emails = getEmailAddresses();
@@ -1082,9 +1142,10 @@ System.out.println(msg + "\r\n");
 
 
       //Add Physical Addresses
-        if (!physicalAddresses.isEmpty()){
+        PhysicalAddress[] addresses = getPhysicalAddresses();
+        if (addresses!=null){
             msg.append("<t:PhysicalAddresses>");
-            for (PhysicalAddress address : getPhysicalAddresses()){
+            for (PhysicalAddress address : addresses){
                 msg.append(address.toXML("t", true));
             }
             msg.append("</t:PhysicalAddresses>");
@@ -1092,18 +1153,19 @@ System.out.println(msg + "\r\n");
         
 
       //Add Phone Numbers
-        if (!phoneNumbers.isEmpty()){
+        PhoneNumber[] phoneNumbers = getPhoneNumbers();
+        if (phoneNumbers!=null){
             msg.append("<t:PhoneNumbers>");
-            for (PhoneNumber phoneNumber : getPhoneNumbers()){
+            for (PhoneNumber phoneNumber : phoneNumbers){
                 msg.append("<t:Entry Key=\"" + phoneNumber.getType() + "\">" + phoneNumber.getNumber() + "</t:Entry>");
             }
             msg.append("</t:PhoneNumbers>");
         }
         
 
-        if (birthday!=null) msg.append("<t:Birthday>" + formatDate(birthday) + "</t:Birthday>");
-        if (title!=null) msg.append("<t:JobTitle>" + title + "</t:JobTitle>");
-        if (lastName!=null) msg.append("<t:Surname>" + lastName + "</t:Surname>");        
+        if (this.getBirthDay()!=null) msg.append("<t:Birthday>" + formatDate(birthday) + "</t:Birthday>");
+        if (this.getTitle()!=null) msg.append("<t:JobTitle>" + title + "</t:JobTitle>");
+        if (this.getLastName()!=null) msg.append("<t:Surname>" + lastName + "</t:Surname>");
 
         msg.append("</t:Contact>");
         msg.append("</m:Items>");
