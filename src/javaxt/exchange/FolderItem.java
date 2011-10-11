@@ -75,6 +75,10 @@ public class FolderItem {
   /** Creates a new instance of this class
    */
     protected FolderItem(String exchangeID, Connection conn) throws ExchangeException{
+
+        if (exchangeID==null) throw new ExchangeException("Exchange ID is required.");
+        if (conn==null) throw new ExchangeException("Exchange Web Services Connection is required.");
+
         String msg =
         "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
         + "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" "
@@ -273,7 +277,7 @@ public class FolderItem {
   /** Returns the timestamp for when this item was last modified.
    */
     protected javaxt.utils.Date getLastModifiedTime(Connection conn) throws ExchangeException {
-        lastModified = new FolderItem(id, conn).lastModified;
+        this.lastModified = new FolderItem(id, conn).getLastModifiedTime();
         return lastModified;
     }
 

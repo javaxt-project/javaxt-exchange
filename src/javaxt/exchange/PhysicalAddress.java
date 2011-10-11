@@ -365,12 +365,8 @@ public class PhysicalAddress {
         if (obj!=null){
 
           //Normalize the addresses
-            String str1 = obj.toString().replace("\r", "").replace("\n", " ").replace(",", " ");
-            String str2 = this.toString().replace("\r", "").replace("\n", " ").replace(",", " ");
-            while (str1.contains("  ")) str1 = str1.replace("  ", " ");
-            while (str2.contains("  ")) str2 = str2.replace("  ", " ");
-            str1 = str1.trim();
-            str2 = str2.trim();
+            String str1 = normalizeAddress(obj);
+            String str2 = normalizeAddress(this);
 
             /*
             System.out.println("str1: |" + str1 + "|");
@@ -383,9 +379,20 @@ public class PhysicalAddress {
                 }
             }
             */
-            
+      
             return str1.equalsIgnoreCase(str2);
         }
         else return false;
+    }
+    
+    
+    private String normalizeAddress(Object obj){
+        String str1 = obj.toString().replace("\r", "").replace("\n", " ").replace(",", " ");
+        while (str1.contains("  ")) str1 = str1.replace("  ", " ");
+        return str1.trim();
+    }
+    
+    public int hashCode(){
+        return normalizeAddress(this).toLowerCase().hashCode();
     }
 }
