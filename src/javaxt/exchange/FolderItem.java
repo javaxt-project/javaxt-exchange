@@ -520,7 +520,7 @@ public class FolderItem {
   /** Used to format a date into a string that Exchange Web Services can
    *  understand.
    */
-    protected String formatDate(javaxt.utils.Date date){
+    protected static String formatDate(javaxt.utils.Date date){
         if (date==null) return null;
         String d = date.toString("yyyy-MM-dd HH:mm:ssZ").replace(" ", "T");
         return d.substring(0, d.length()-2) + ":" + d.substring(d.length()-2);

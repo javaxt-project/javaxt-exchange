@@ -52,7 +52,7 @@ public class Connection {
         if (status<100) throw new ExchangeException("Failed to connect to Exchange Web Service.");
         if (status>=400){
 
-            String errorMessage = response.getErrorMessage();
+            String errorMessage = response.getText();
             org.w3c.dom.Document xml = javaxt.xml.DOM.createDocument(errorMessage);
             if (xml!=null){
                 org.w3c.dom.Node[] responseMessages = javaxt.xml.DOM.getElementsByTagName("faultstring", xml);
@@ -68,6 +68,7 @@ public class Connection {
         org.w3c.dom.Document xml = response.getXML();
         String error = parseError(xml);
         if (error!=null) throw new ExchangeException(error);
+        //new javaxt.io.File("/temp/exchange-execute-" + new java.util.Date().getTime() + ".xml").write(xml);
         return xml;
     }
 

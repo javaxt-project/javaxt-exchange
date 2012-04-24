@@ -104,6 +104,43 @@ public class Folder {
    *  this folder.
    */
     protected org.w3c.dom.Document getItems(int maxEntries, int offset) throws ExchangeException {
+        return getItems("<m:IndexedPageItemView MaxEntriesReturned=\"" + maxEntries + "\" Offset=\"" + offset + "\" BasePoint=\"Beginning\"/>");
+    }
+
+
+  //**************************************************************************
+  //** getItems
+  //**************************************************************************
+  /** Returns an XML document with shallow representations of items found in
+   *  this folder.
+   *  @param view XML node representing a page view (e.g. IndexedPageItemView,
+   *  FractionalPageItemView, CalendarView, ContactsView).
+   */
+    protected org.w3c.dom.Document getItems(String view) throws ExchangeException {
+
+      //Update the view xml node. Make sure the node name is prefixed with a "m:" namespace
+        if (view==null) view = "";
+        else{
+            view = view.trim();
+
+            String nodeName = view.substring(1, view.indexOf(">"));
+            if (nodeName.endsWith("/")) nodeName = nodeName.substring(0, nodeName.length()-1);
+            if (nodeName.contains(" ")) nodeName = nodeName.substring(0, nodeName.indexOf(" "));
+            nodeName = nodeName.trim();
+            if (nodeName.contains(":")){
+                String ns = nodeName.substring(0, nodeName.indexOf(":"));
+                if (!ns.equals("m")){
+                    String newNodeName = nodeName.substring(ns.length()+1);
+                    view = view.replace("<" + nodeName, "<m:" + newNodeName);
+                    view = view.replace("</" + nodeName, "</m:" + newNodeName);
+                }
+            }
+            else{
+                view = view.replace("<" + nodeName, "<m:" + nodeName);
+                view = view.replace("</" + nodeName, "</m:" + nodeName);
+            }
+        }
+
 
         String msg =
         "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
@@ -124,7 +161,9 @@ public class Folder {
                 + "</t:AdditionalProperties>"
         + "</m:ItemShape>"
 
-        + "<m:IndexedPageItemView MaxEntriesReturned=\"" + maxEntries + "\" Offset=\"" + offset + "\" BasePoint=\"Beginning\"/><m:ParentFolderIds>"
+        + view
+
+        + "<m:ParentFolderIds>"
         + "<t:FolderId Id=\"" + id + "\"/>"
         + "</m:ParentFolderIds>"
         + "</m:FindItem>"
