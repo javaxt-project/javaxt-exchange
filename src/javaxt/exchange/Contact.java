@@ -996,78 +996,24 @@ public class Contact extends FolderItem {
   /**  Used to save/update a contact. Returns the Exchange ID for the item.
    */
     public String save(Connection conn) throws ExchangeException {
+
+        java.util.HashMap<String, String> options = new java.util.HashMap<String, String>();
+        options.put("ConflictResolution", "AutoResolve");
+
         if (id==null) create(conn);
-        else update(conn);
+        else update("Contact", "contacts", options, conn);
         return id;
     }
 
 
   //**************************************************************************
-  //** updateContact
+  //** delete
   //**************************************************************************
-  /** Used to update the contact.
+  /**  Used to delete a contact.
    */
-    private void update(Connection conn) throws ExchangeException {
-
-        if (updates.isEmpty()) return;
-
-
-        StringBuffer msg = new StringBuffer();
-        msg.append("<?xml version=\"1.0\" encoding=\"utf-8\" ?>");
-        msg.append("<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:t=\"http://schemas.microsoft.com/exchange/services/2006/types\" xmlns:m=\"http://schemas.microsoft.com/exchange/services/2006/messages\">");
-        msg.append("<soap:Body>");
-        msg.append("<m:UpdateItem ConflictResolution=\"AutoResolve\">");
-        msg.append("<m:ItemChanges>");
-        msg.append("<t:ItemChange>");
-        msg.append("<t:ItemId Id=\"" + id + "\" ChangeKey=\"" + getChangeKey(conn) + "\" />"); //
-        msg.append("<t:Updates>");
-
-
-        String namespace = "contacts";
-        java.util.Iterator<String> it = updates.keySet().iterator();
-        while (it.hasNext()){
-            String key = it.next();
-            String value = updates.get(key);
-            if (key.equalsIgnoreCase("Categories")) namespace = "item";
-
-            if (value==null){
-                System.out.println("Delete " + key);
-                msg.append("<t:DeleteItemField>");
-                msg.append("<t:FieldURI FieldURI=\"" + namespace + ":" + key + "\"/>");
-                msg.append("</t:DeleteItemField>");                
-            }
-            else{
-                System.out.println("Update " + key);
-
-                if (value.trim().startsWith("<t:SetItemField") || value.trim().startsWith("<t:DeleteItemField")){
-                    msg.append(value);
-                }
-                else{
-                    msg.append("<t:SetItemField>");
-                    msg.append("<t:FieldURI FieldURI=\"" + namespace + ":" + key + "\" />");
-                    msg.append("<t:Contact>");
-                    msg.append("<t:" + key + ">" + value + "</t:" + key + ">");
-                    msg.append("</t:Contact>");
-                    msg.append("</t:SetItemField>");
-                }
-                
-            }
-        }
-
-        msg.append("</t:Updates>");
-        msg.append("</t:ItemChange>");
-        msg.append("</m:ItemChanges>");
-        msg.append("</m:UpdateItem>");
-        msg.append("</soap:Body>");
-        msg.append("</soap:Envelope>");
-
-System.out.println(msg + "\r\n");
-
-        updates.clear();
-
-        conn.execute(msg.toString());
+    public void delete(Connection conn) throws ExchangeException {
+        super.delete(null, conn);
     }
-
 
 
   //**************************************************************************

@@ -57,11 +57,12 @@ public class FolderItem {
     protected String changeKey;
     protected String subject;
     protected String body;
+    protected String bodyType;
     protected java.util.HashSet<String> categories = new java.util.HashSet<String>();
     protected javaxt.utils.Date lastModified;
 
     /** Hashmap with a list of any pending updates to be made to this item. */
-    protected java.util.HashMap<String, String> updates = new java.util.HashMap<String, String>();
+    protected java.util.HashMap<String, Object> updates = new java.util.HashMap<String, Object>();
 
     private org.w3c.dom.Node node;
 
@@ -345,8 +346,16 @@ public class FolderItem {
         return body;
     }
 
-    protected void setBody(String body){
+  //**************************************************************************
+  //** setBody
+  //**************************************************************************
+  /** @param format Text format ("Best", "HTML", or "Text").
+   */
+    protected void setBody(String body, String format){
         body = getValue(body);
+        format = getValue(format);
+        if (format==null) format = "Text";
+
 
         if (id!=null) {
             if (body==null && this.body!=null) updates.put("Body", null);
@@ -354,6 +363,7 @@ public class FolderItem {
         }
 
         this.body = body;
+        this.bodyType = format;
     }
 
 
@@ -480,17 +490,163 @@ public class FolderItem {
 
 
   //**************************************************************************
+  //** updateLastModifiedTime
+  //**************************************************************************
+  /**  Used to update the LastModified attribute in Exchange by updating or
+   *   deleting the "Subject" attribute.
+   *   @param itemName Name of the item (e.g. "Contact")
+   */
+    protected javaxt.utils.Date updateLastModifiedTime(String itemName, javaxt.exchange.Connection ews) throws ExchangeException {
+
+        StringBuffer msg = new StringBuffer();
+        msg.append("<?xml version=\"1.0\" encoding=\"utf-8\" ?>");
+        msg.append("<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:t=\"http://schemas.microsoft.com/exchange/services/2006/types\" xmlns:m=\"http://schemas.microsoft.com/exchange/services/2006/messages\">");
+        msg.append("<soap:Body>");
+        msg.append("<m:UpdateItem ConflictResolution=\"AutoResolve\">");
+        msg.append("<m:ItemChanges>");
+        msg.append("<t:ItemChange>");
+        msg.append("<t:ItemId Id=\"" + getID() + "\" ChangeKey=\"" + getChangeKey(ews) + "\" />");
+        msg.append("<t:Updates>");
+
+        String namespace = "item";
+        String key = "Subject";
+        String value = this.getSubject();
+
+        if (value==null){
+            msg.append("<t:DeleteItemField>");
+            msg.append("<t:FieldURI FieldURI=\"" + namespace + ":" + key + "\"/>");
+            msg.append("</t:DeleteItemField>");
+        }
+        else{
+            msg.append("<t:SetItemField>");
+            msg.append("<t:FieldURI FieldURI=\"" + namespace + ":" + key + "\" />");
+            msg.append("<t:" + itemName + ">");
+            msg.append("<t:" + key + ">" + value + "</t:" + key + ">");
+            msg.append("</t:" + itemName + ">");
+            msg.append("</t:SetItemField>");
+        }
+        msg.append("</t:Updates>");
+        msg.append("</t:ItemChange>");
+        msg.append("</m:ItemChanges>");
+        msg.append("</m:UpdateItem>");
+        msg.append("</soap:Body>");
+        msg.append("</soap:Envelope>");
+
+        ews.execute(msg.toString());
+
+        return getLastModifiedTime(ews);
+    }
+
+
+  //**************************************************************************
+  //** update
+  //**************************************************************************
+  /** Used to update an item.
+   *
+   *  @param itemName Name of the item being updated (e.g. "CalendarItem",
+   *  "Contact", etc.)
+   *  @param namespace Default namespace associated with the itemName (e.g.
+   *  "calendar", "contacts", etc.).
+   *  @param options Hashmap containing key/value pairs representing update
+   *  options. These options are inserted as attributes into the UpdateItem node.
+   *  Example: ConflictResolution="AutoResolve" and SendMeetingInvitationsOrCancellations="SendOnlyToChanged"
+   */
+    protected void update(String itemName, String namespace, java.util.HashMap<String, String> options, Connection conn) throws ExchangeException {
+
+        if (updates.isEmpty()) return;
+
+        String attr = "";
+        if (options!=null){
+            java.util.Iterator<String> it = options.keySet().iterator();
+            while (it.hasNext()){
+                String key = it.next();
+                attr += " " + key + "=\"" + options.get(key) + "\"";
+            }
+        }
+
+        StringBuffer msg = new StringBuffer();
+        msg.append("<?xml version=\"1.0\" encoding=\"utf-8\" ?>");
+        msg.append("<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:t=\"http://schemas.microsoft.com/exchange/services/2006/types\" xmlns:m=\"http://schemas.microsoft.com/exchange/services/2006/messages\">");
+        msg.append("<soap:Body>");
+        msg.append("<m:UpdateItem" + attr + ">");
+        msg.append("<m:ItemChanges>");
+        msg.append("<t:ItemChange>");
+        msg.append("<t:ItemId Id=\"" + id + "\" ChangeKey=\"" + getChangeKey(conn) + "\" />"); //
+        msg.append("<t:Updates>");
+
+
+        java.util.Iterator<String> it = updates.keySet().iterator();
+        while (it.hasNext()){
+            String key = it.next();
+            Object value = updates.get(key);
+            if (key.equalsIgnoreCase("Categories")) namespace = "item";
+
+            if (value==null){
+                System.out.println("Delete " + key);
+                msg.append("<t:DeleteItemField>");
+                msg.append("<t:FieldURI FieldURI=\"" + namespace + ":" + key + "\"/>");
+                msg.append("</t:DeleteItemField>");
+            }
+            else{
+                System.out.println("Update " + key);
+
+                String str = value.toString().trim();
+                if (str.startsWith("<t:SetItemField") || str.startsWith("<t:DeleteItemField")){
+                    msg.append(value);
+                }
+                else{
+                    msg.append("<t:SetItemField>");
+                    msg.append("<t:FieldURI FieldURI=\"" + namespace + ":" + key + "\" />");
+                    msg.append("<t:" + itemName + ">");
+                    msg.append("<t:" + key + ">" + value + "</t:" + key + ">");
+                    msg.append("</t:" + itemName + ">");
+                    msg.append("</t:SetItemField>");
+                }
+
+            }
+        }
+
+        msg.append("</t:Updates>");
+        msg.append("</t:ItemChange>");
+        msg.append("</m:ItemChanges>");
+        msg.append("</m:UpdateItem>");
+        msg.append("</soap:Body>");
+        msg.append("</soap:Envelope>");
+
+System.out.println(msg + "\r\n");
+
+        updates.clear();
+
+        conn.execute(msg.toString());
+    }
+
+
+  //**************************************************************************
   //** delete
   //**************************************************************************
   /** Used to delete this item.
+   *  @param options Hashmap containing key/value pairs representing delete
+   *  options. These options are inserted as attributes into the DeleteItem node.
+   *  Example: DeleteType="MoveToDeletedItems" and SendMeetingCancellations="SendToAllAndSaveCopy"
    */
-    public void delete(Connection conn) throws ExchangeException {
+    protected void delete(java.util.HashMap<String, String> options, Connection conn) throws ExchangeException {
+
+        if (options==null) options = new java.util.HashMap<String, String>();
+        if (!options.containsKey("DeleteType")) options.put("DeleteType", "MoveToDeletedItems");
+        String attr = "";
+        java.util.Iterator<String> it = options.keySet().iterator();
+        while (it.hasNext()){
+            String key = it.next();
+            attr += " " + key + "=\"" + options.get(key) + "\"";
+        }
+
+
         String msg =
         "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
         + "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:t=\"http://schemas.microsoft.com/exchange/services/2006/types\" xmlns:m=\"http://schemas.microsoft.com/exchange/services/2006/messages\">"
         //+ "<soap:Header><t:RequestServerVersion Version=\"Exchange2007_SP1\"/></soap:Header>"
         + "<soap:Body>"
-        + "<m:DeleteItem DeleteType=\"MoveToDeletedItems\">"
+        + "<m:DeleteItem" + attr + ">"
         + "<m:ItemIds>"
         + "<t:ItemId Id=\"" + id + "\"/></m:ItemIds>" //ChangeKey=\"EQAAABYAAAA9IPsqEJarRJBDywM9WmXKAAV+D0Dq\"
         + "</m:DeleteItem>"

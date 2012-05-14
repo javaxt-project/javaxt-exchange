@@ -10,6 +10,7 @@ package javaxt.exchange;
 
 public class CalendarFolder extends Folder {
 
+    private java.util.ArrayList<String> props = new java.util.ArrayList<String>();
 
   //**************************************************************************
   //** Constructor
@@ -18,6 +19,7 @@ public class CalendarFolder extends Folder {
 
     public CalendarFolder(Connection conn) throws ExchangeException {
         super("calendar", conn);
+        props.add("calendar:TimeZone");
     }
 
     /*
@@ -50,7 +52,7 @@ public class CalendarFolder extends Folder {
     private CalendarEvent[] getEvents(int numEntries, int offset) throws ExchangeException {
 
         java.util.ArrayList<CalendarEvent> events = new java.util.ArrayList<CalendarEvent>();
-        org.w3c.dom.Document xml = getItems(numEntries, offset);
+        org.w3c.dom.Document xml = getItems(numEntries, offset, props);
         org.w3c.dom.Node[] nodes = javaxt.xml.DOM.getElementsByTagName("CalendarItem", xml);
 
         for (org.w3c.dom.Node node : nodes){
@@ -114,12 +116,21 @@ public class CalendarFolder extends Folder {
         String EndDate = FolderItem.formatDate(end);
 
         java.util.ArrayList<CalendarEvent> events = new java.util.ArrayList<CalendarEvent>();
-        org.w3c.dom.Document xml = getItems("<m:CalendarView StartDate=\"" + StartDate + "\" EndDate=\"" + EndDate + "\"/>");
+        org.w3c.dom.Document xml = getItems("<m:CalendarView StartDate=\"" + StartDate + "\" EndDate=\"" + EndDate + "\"/>", props);
         org.w3c.dom.Node[] nodes = javaxt.xml.DOM.getElementsByTagName("CalendarItem", xml);
 
         for (org.w3c.dom.Node node : nodes){
-            events.add(new CalendarEvent(node));
+            CalendarEvent event = new CalendarEvent(node);
+            if (event.isAllDayEvent() && event.getStartTime().compareTo(start, "days")==-1){
+                
+            }
+            else{
+                events.add(new CalendarEvent(node));
+            }
         }
+
+
+
         return events.toArray(new CalendarEvent[events.size()]);
     }
 }

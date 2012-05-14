@@ -91,7 +91,10 @@ public class Connection {
                 String nodeName = node.getNodeName();
                 if (nodeName.contains(":")) nodeName = nodeName.substring(nodeName.indexOf(":")+1);
 
-                if (nodeName.equalsIgnoreCase("UpdateItemResponseMessage")){
+                if (nodeName.equalsIgnoreCase("CreateItemResponseMessage") || 
+                    nodeName.equalsIgnoreCase("UpdateItemResponseMessage") ||
+                    nodeName.equalsIgnoreCase("DeleteItemResponseMessage"))
+                {
                     String responseClass = javaxt.xml.DOM.getAttributeValue(node, "ResponseClass");
                     if (responseClass.equalsIgnoreCase("Error")){
 

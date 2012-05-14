@@ -103,8 +103,8 @@ public class Folder {
   /** Returns an XML document with shallow representations of items found in
    *  this folder.
    */
-    protected org.w3c.dom.Document getItems(int maxEntries, int offset) throws ExchangeException {
-        return getItems("<m:IndexedPageItemView MaxEntriesReturned=\"" + maxEntries + "\" Offset=\"" + offset + "\" BasePoint=\"Beginning\"/>");
+    protected org.w3c.dom.Document getItems(int maxEntries, int offset, java.util.ArrayList<String> additionalProperties) throws ExchangeException {
+        return getItems("<m:IndexedPageItemView MaxEntriesReturned=\"" + maxEntries + "\" Offset=\"" + offset + "\" BasePoint=\"Beginning\"/>", additionalProperties);
     }
 
 
@@ -113,10 +113,16 @@ public class Folder {
   //**************************************************************************
   /** Returns an XML document with shallow representations of items found in
    *  this folder.
+   *
    *  @param view XML node representing a page view (e.g. IndexedPageItemView,
    *  FractionalPageItemView, CalendarView, ContactsView).
+   *
+   *  @param additionalProperties By default, this method returns a shallow
+   *  representation of each item found in this folder. You can retrieve
+   *  additional attributes by providing a list of properties
+   *  (e.g. "calendar:TimeZone", "item:Sensitivity", etc).
    */
-    protected org.w3c.dom.Document getItems(String view) throws ExchangeException {
+    protected org.w3c.dom.Document getItems(String view, java.util.ArrayList<String> additionalProperties) throws ExchangeException {
 
       //Update the view xml node. Make sure the node name is prefixed with a "m:" namespace
         if (view==null) view = "";
@@ -141,6 +147,12 @@ public class Folder {
             }
         }
 
+        StringBuffer props = new StringBuffer();
+        if (additionalProperties!=null){
+            for (String prop : additionalProperties){
+                props.append("<t:FieldURI FieldURI=\"" + prop + "\"/>");
+            }
+        }
 
         String msg =
         "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
@@ -158,6 +170,7 @@ public class Folder {
                 + "<t:FieldURI FieldURI=\"item:ItemClass\"/>"
                 //+ "<t:FieldURI FieldURI=\"item:LastModifiedTime\"/>" //value="item:LastModifiedTime" //<--This doesn't work...
                 + "<t:ExtendedFieldURI PropertyTag=\"0x3008\" PropertyType=\"SystemTime\" />" //<--This returns the LastModifiedTime!
+                + props.toString() 
                 + "</t:AdditionalProperties>"
         + "</m:ItemShape>"
 

@@ -57,6 +57,11 @@ public class Mailbox {
         this.EmailAddress = email;
     }
 
+    public Mailbox(Contact contact){
+        this.Name = contact.getFullName();
+        this.EmailAddress = contact.getEmailAddresses()[0].toString();
+    }
+
 
   //**************************************************************************
   //** toXML
@@ -84,20 +89,38 @@ public class Mailbox {
 
         str.append("<" + namespace + "Mailbox>");
         if (Name!=null) str.append("<" + namespace + "Name>" + Name + "</" + namespace + "Name>");
-        if (EmailAddress!=null)  str.append("<" + namespace + "EmailAddress>" + EmailAddress + "/" + namespace + "EmailAddress>");
-        if (RoutingType!=null)  str.append("<" + namespace + "RoutingType>" + RoutingType + "/" + namespace + "RoutingType>");
-        if (MailboxType!=null)  str.append("<" + namespace + "MailboxType>" + MailboxType + "/" + namespace + "MailboxType>");
-        if (ItemId!=null)  str.append("<" + namespace + "ItemId>" + ItemId + "/" + namespace + "ItemId>");
+        if (EmailAddress!=null)  str.append("<" + namespace + "EmailAddress>" + EmailAddress + "</" + namespace + "EmailAddress>");
+        if (RoutingType!=null)  str.append("<" + namespace + "RoutingType>" + RoutingType + "</" + namespace + "RoutingType>");
+        if (MailboxType!=null)  str.append("<" + namespace + "MailboxType>" + MailboxType + "</" + namespace + "MailboxType>");
+        if (ItemId!=null)  str.append("<" + namespace + "ItemId>" + ItemId + "</" + namespace + "ItemId>");
         str.append("</" + namespace + "Mailbox>");
 
         return str.toString().trim();
     }
 
+
+    public String getEmailAddress(){
+        return EmailAddress;
+    }
+
+
     public String toString(){
         if (Name!=null && EmailAddress!=null) return Name + " <" + EmailAddress + ">";
-        if (Name!=null) return Name;
         if (EmailAddress!=null) return EmailAddress;
+        if (Name!=null) return Name;        
         return ItemId; //?
+    }
+
+
+    public boolean equals(Object obj){
+        if (obj instanceof Mailbox){
+            return ((Mailbox) obj).hashCode()==this.hashCode();
+        }
+        return false;
+    }
+
+    public int hashCode(){
+        return EmailAddress.toLowerCase().hashCode();
     }
 
 }
