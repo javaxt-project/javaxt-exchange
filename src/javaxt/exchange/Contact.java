@@ -78,6 +78,7 @@ public class Contact extends FolderItem {
 
       //General information
         this.id = contact.id;
+        this.categories = contact.categories;
         this.updates = contact.updates;
         this.lastModified = contact.lastModified;
 
@@ -87,7 +88,6 @@ public class Contact extends FolderItem {
         this.fullName = contact.fullName;
         this.company = contact.company;
         this.title = contact.title;
-        this.categories = contact.categories;
         this.emailAddresses = contact.emailAddresses;
         this.phoneNumbers = contact.phoneNumbers;
         this.physicalAddresses = contact.physicalAddresses;

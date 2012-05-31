@@ -42,6 +42,10 @@ public class CalendarEvent extends FolderItem {
 
       //General information
         this.id = event.id;
+        this.subject = event.subject;
+        this.body = event.body;
+        this.bodyType = event.bodyType;
+        this.categories = event.categories;
         this.updates = event.updates;
         this.lastModified = event.lastModified;
 
@@ -148,16 +152,33 @@ public class CalendarEvent extends FolderItem {
                 }
             }
         }
-        this.setTimeZone(timezone);
+        setTimeZone(timezone);
     }
 
 
+  //**************************************************************************
+  //** setTimeZone
+  //**************************************************************************
+  /** Used to set the time zone for the event. This is important for
+   *  calculating all day events.
+   */
     public void setTimeZone(String timezone){
-        if (timezone.equalsIgnoreCase("Eastern Standard Time")){
-            setTimeZone(java.util.TimeZone.getTimeZone("EST5EDT"));
+        if (timezone==null) return;
+        if (timezone.trim().length()==0){
+            setTimeZone(java.util.TimeZone.getDefault()); //TODO: Get default timezone from the server?
+        }
+        else{
+            setTimeZone(javaxt.utils.Date.getTimeZone(timezone));
         }
     }
 
+
+  //**************************************************************************
+  //** setTimeZone
+  //**************************************************************************
+  /** Used to set the time zone for the event. This is important for
+   *  calculating all day events.
+   */
     public void setTimeZone(java.util.TimeZone timezone){
         startTime.setTimeZone(timezone);
         endTime.setTimeZone(timezone);
