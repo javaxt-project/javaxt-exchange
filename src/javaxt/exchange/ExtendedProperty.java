@@ -23,9 +23,10 @@ public class ExtendedProperty {
   /** Creates a new instance of this class.
    *  @param id A unique id in the form of a Microsoft GUID
    */
-    public ExtendedProperty(String id, String name, String value){
+    public ExtendedProperty(String id, String name, String type, String value){
         this.id = id;
         this.name = name;
+        this.type = type;
         this.value = value;
     }
 
