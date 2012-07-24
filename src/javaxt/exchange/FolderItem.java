@@ -61,6 +61,9 @@ public class FolderItem {
     protected java.util.HashSet<String> categories = new java.util.HashSet<String>();
     protected javaxt.utils.Date lastModified;
 
+    private java.util.HashMap<String, ExtendedProperty> extendedProperties =
+            new java.util.HashMap<String, ExtendedProperty>();
+
     /** Hashmap with a list of any pending updates to be made to this item. */
     protected java.util.HashMap<String, Object> updates = new java.util.HashMap<String, Object>();
 
@@ -74,36 +77,56 @@ public class FolderItem {
   //** Constructor
   //**************************************************************************
   /** Creates a new instance of this class
+   *  @param AdditionalProperties A list of attributes you wish to see
    */
-    protected FolderItem(String exchangeID, Connection conn) throws ExchangeException{
+    protected FolderItem(String exchangeID, Connection conn, ExtendedProperty[] AdditionalProperties) throws ExchangeException{
 
         if (exchangeID==null) throw new ExchangeException("Exchange ID is required.");
         if (conn==null) throw new ExchangeException("Exchange Web Services Connection is required.");
 
-        String msg =
-        "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
-        + "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" "
+        StringBuffer str = new StringBuffer();
+
+        str.append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
+        str.append("<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" "
             + "xmlns:t=\"http://schemas.microsoft.com/exchange/services/2006/types\" "
-            + "xmlns:m=\"http://schemas.microsoft.com/exchange/services/2006/messages\">"
+            + "xmlns:m=\"http://schemas.microsoft.com/exchange/services/2006/messages\">");
         //+ "<soap:Header><t:RequestServerVersion Version=\"Exchange2007\"/></soap:Header>"
-        + "<soap:Body>"
-        + "<m:GetItem>"
-        + "<m:ItemShape>"
-                + "<t:BaseShape>AllProperties</t:BaseShape>"
-                + "<t:AdditionalProperties>"
-                + "<t:FieldURI FieldURI=\"item:ItemClass\"/>"
-                //+ "<t:FieldURI FieldURI=\"item:LastModifiedTime\"/>" //value="item:LastModifiedTime" //<--This doesn't work...
-                + "<t:ExtendedFieldURI PropertyTag=\"0x3008\" PropertyType=\"SystemTime\" />" //<--This returns the LastModifiedTime!
-                + "</t:AdditionalProperties>"
-        + "</m:ItemShape>"
-        + "<m:ItemIds><t:ItemId Id=\"" + exchangeID + "\"/></m:ItemIds>"
-        + "</m:GetItem>"
-        + "</soap:Body>"
-        + "</soap:Envelope>";
+        str.append("<soap:Body>");
+        str.append("<m:GetItem>");
+        str.append("<m:ItemShape>");
+        str.append("<t:BaseShape>AllProperties</t:BaseShape>");
 
 
-        org.w3c.dom.Document xml = conn.execute(msg);
+        str.append("<t:AdditionalProperties>");
+        //str.append("<t:FieldURI FieldURI=\"item:LastModifiedTime\"/>"); //<--This doesn't work...
+        str.append("<t:ExtendedFieldURI PropertyTag=\"0x3008\" PropertyType=\"SystemTime\" />"); //<--This returns the LastModifiedTime!
+        
+        if (AdditionalProperties!=null){            
+            for (ExtendedProperty property : AdditionalProperties){
 
+                String name = property.getName();
+                String type = property.getType();
+                String guid = property.getID();
+
+                String idAttr = (guid==null ? "" : "PropertySetId=\"" + guid + "\"");
+                String nameAttr = (name.startsWith("0x") ? "PropertyTag=\"" + name + "\"" : "PropertyName=\"" + name + "\"");
+                String typeAttr = "PropertyType=\"" + type + "\"";
+
+                str.append("<t:ExtendedFieldURI " + nameAttr + " " + idAttr + " " + typeAttr + "/>");
+            }
+        }
+        str.append("</t:AdditionalProperties>");
+
+
+        str.append("</m:ItemShape>");
+        str.append("<m:ItemIds><t:ItemId Id=\"" + exchangeID + "\"/></m:ItemIds>");
+        str.append("</m:GetItem>");
+        str.append("</soap:Body>");
+        str.append("</soap:Envelope>");
+
+
+
+        org.w3c.dom.Document xml = conn.execute(str.toString());
         org.w3c.dom.Node[] items = javaxt.xml.DOM.getElementsByTagName("Items", xml);
         boolean foundItem = false;
         if (items.length>0){
@@ -173,37 +196,18 @@ public class FolderItem {
                 }
                 else if (nodeName.equalsIgnoreCase("ExtendedProperty")){
 
-                    org.w3c.dom.Node ExtendedFieldURI = null;
-                    org.w3c.dom.Node Value = null;
+                    ExtendedProperty prop = new ExtendedProperty(outerNode);
 
-                    org.w3c.dom.NodeList childNodes = outerNode.getChildNodes();
-                    for (int j=0; j<childNodes.getLength(); j++){
-                        org.w3c.dom.Node childNode = childNodes.item(j);
-                        if (childNode.getNodeType()==1){
-
-                            String childNodeName = childNode.getNodeName();
-                            if (childNodeName.contains(":")) childNodeName = childNodeName.substring(childNodeName.indexOf(":")+1);
-
-                            if (childNodeName.equalsIgnoreCase("ExtendedFieldURI")){
-                                ExtendedFieldURI = childNode;
-                            }
-                            else if (childNodeName.equalsIgnoreCase("Value")){
-                                Value = childNode;
-                            }
+                    if (prop.getName().equalsIgnoreCase("0x3008")){
+                        try{
+                            lastModified = new javaxt.utils.Date(prop.getValue());
                         }
+                        catch(java.text.ParseException e){}
+                    }
+                    else{
+                        extendedProperties.put(prop.getName(), prop);
                     }
 
-                    if (ExtendedFieldURI!=null){
-                        String PropertyTag = javaxt.xml.DOM.getAttributeValue(ExtendedFieldURI, "PropertyTag");
-
-                      //Extract last mod date
-                        if (PropertyTag.equalsIgnoreCase("0x3008")){
-                            try{
-                                lastModified = new javaxt.utils.Date(javaxt.xml.DOM.getNodeValue(Value));
-                            }
-                            catch(java.text.ParseException e){}
-                        }
-                    }
                 }
 
             }
@@ -278,7 +282,7 @@ public class FolderItem {
   /** Returns the timestamp for when this item was last modified.
    */
     protected javaxt.utils.Date getLastModifiedTime(Connection conn) throws ExchangeException {
-        this.lastModified = new FolderItem(id, conn).getLastModifiedTime();
+        this.lastModified = new FolderItem(id, conn, null).getLastModifiedTime();
         return lastModified;
     }
 
@@ -306,7 +310,7 @@ public class FolderItem {
    *  required to update an item.
    */
     protected String getChangeKey(Connection conn) throws ExchangeException {
-        changeKey = new FolderItem(id, conn).changeKey;
+        changeKey = new FolderItem(id, conn, null).changeKey;
         return changeKey;
     }
 
@@ -486,6 +490,169 @@ public class FolderItem {
         }
 
         categories.clear();
+    }
+
+
+
+
+  //**************************************************************************
+  //** getExtendedProperties
+  //**************************************************************************
+  /** Returns an array of ExtendedProperties associated with this contact.
+   */
+    public ExtendedProperty[] getExtendedProperties(){
+
+      //Only include non-null values in the array
+        java.util.ArrayList<ExtendedProperty> arr = new java.util.ArrayList<ExtendedProperty>();
+        java.util.Iterator<String> it = extendedProperties.keySet().iterator();
+        while (it.hasNext()){
+            String key = it.next();
+            ExtendedProperty val = extendedProperties.get(key);
+            if (val!=null) arr.add(val);
+        }
+        if (arr.isEmpty()) return null;
+        else return arr.toArray(new ExtendedProperty[arr.size()]);
+    }
+
+
+  //**************************************************************************
+  //** setExtendedProperties
+  //**************************************************************************
+  /** Used to add phone numbers to a contact.
+   */
+    public void setExtendedProperties(ExtendedProperty[] extendedProperties) {
+
+        if (extendedProperties==null || extendedProperties.length==0){
+            removeExtendedProperties();
+            return;
+        }
+
+      //See whether any updates are required
+        int numMatches = 0;
+        int total = 0;
+        for (ExtendedProperty property : extendedProperties){
+            if (property!=null){
+                total++;
+                String name = property.getName();
+                if (this.extendedProperties.containsKey(name)){
+                    if (this.extendedProperties.get(name).equals(property)) numMatches++;
+                }
+            }
+        }
+
+        int numExtendedProperties = 0;
+        if (this.getExtendedProperties()!=null) numExtendedProperties = this.getExtendedProperties().length;
+
+      //If the input array equals the current list of extendedProperties, do nothing...
+        if (numMatches==total && numMatches==numExtendedProperties){
+            return;
+        }
+        else {
+            this.extendedProperties.clear();
+            for (ExtendedProperty property : extendedProperties){
+                addExtendedProperty(property);
+            }
+        }
+    }
+
+
+
+  //**************************************************************************
+  //** addExtendedProperty
+  //**************************************************************************
+  /** Used to associate a phone number with this contact.
+   */
+    public void addExtendedProperty(ExtendedProperty property){
+
+      //Check whether this is a new property
+        boolean update = false;
+        if (extendedProperties.containsKey(property.getName())){
+            java.util.Iterator<String> it = extendedProperties.keySet().iterator();
+            while (it.hasNext()){
+                String key = it.next();
+                if (key.equals(property.getName())){
+                    String value = null;
+                    if (extendedProperties.get(key).getValue()!=null){
+                        value = extendedProperties.get(key).getValue();
+                    }
+
+                    if (value==null || !value.equals(property.getValue())){
+                        update = true;
+                    }
+                    break;
+                }
+            }
+        }
+        else{
+            update = true;
+        }
+
+
+        if (update){
+            extendedProperties.put(property.getName(), property);
+            if (id!=null) updates.put("ExtendedProperties", getExtendedPropertyUpdates());
+        }
+    }
+
+
+
+  //**************************************************************************
+  //** removeExtendedProperty
+  //**************************************************************************
+
+    public void removeExtendedProperty(ExtendedProperty property){
+
+        String name = property.getName();
+        if (extendedProperties.containsKey(name)){
+            if (id==null) extendedProperties.remove(name);
+            else{
+                property = extendedProperties.get(name);
+                property.setValue(null);
+                extendedProperties.put(name, property);
+            }
+
+            if (id!=null) updates.put("ExtendedProperties", getExtendedPropertyUpdates());
+        }
+    }
+
+  //**************************************************************************
+  //** removeExtendedProperties
+  //**************************************************************************
+
+    public void removeExtendedProperties(){
+        ExtendedProperty[] extendedProperties = getExtendedProperties();
+        if (extendedProperties!=null){
+            for (ExtendedProperty property : extendedProperties){
+                removeExtendedProperty(property);
+            }
+        }
+    }
+
+
+    private String getExtendedPropertyUpdates(){
+
+        if (extendedProperties.isEmpty()) return "";
+        else{
+            StringBuffer xml = new StringBuffer();
+
+            java.util.Iterator<String> it = extendedProperties.keySet().iterator();
+            while (it.hasNext()){
+                
+                ExtendedProperty property = extendedProperties.get(it.next());
+                String value = property.getValue();
+
+                if (value==null){
+                    if (id!=null){
+                        xml.append(property.toXML("t", "delete"));
+                    }
+                }
+                else{
+                    xml.append(property.toXML("t", "update"));
+                }
+
+            }
+            return xml.toString();
+        }
     }
 
 

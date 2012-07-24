@@ -100,11 +100,19 @@ public class Contact extends FolderItem {
   //**************************************************************************
   /** Creates a new instance of this class
    */
-    public Contact(String exchangeID, Connection conn) throws ExchangeException{
-        super(exchangeID, conn);
+    public Contact(String exchangeID, Connection conn, ExtendedProperty[] AdditionalProperties) throws ExchangeException{
+        super(exchangeID, conn, AdditionalProperties);
         parseContact();
     }
 
+  //**************************************************************************
+  //** Constructor
+  //**************************************************************************
+  /** Creates a new instance of this class
+   */
+    public Contact(String exchangeID, Connection conn) throws ExchangeException{
+        this(exchangeID, conn, null);
+    }
 
   //**************************************************************************
   //** Constructor
@@ -1070,6 +1078,16 @@ public class Contact extends FolderItem {
             }
             msg.append("</t:Categories>");
         }
+
+
+      //Add extended properties
+        ExtendedProperty[] properties = this.getExtendedProperties();
+        if (properties!=null){
+            for (ExtendedProperty property : properties){
+                msg.append(property.toXML("t", "create"));
+            }
+        }
+
 
         msg.append("<t:FileAsMapping>LastCommaFirst</t:FileAsMapping>");
         msg.append("<t:DisplayName>" + getFullName() + "</t:DisplayName>");

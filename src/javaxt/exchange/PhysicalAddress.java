@@ -195,7 +195,7 @@ public class PhysicalAddress {
   //**************************************************************************
   //** toXML
   //**************************************************************************
-  /** Returns an xml fragment used to save or update a contact via Exchange
+  /** Returns an xml fragment used to save or update an address via Exchange
    *  Web Services (EWS):<br/>
    *  http://msdn.microsoft.com/en-us/library/aa563318%28v=exchg.140%29.aspx
    *

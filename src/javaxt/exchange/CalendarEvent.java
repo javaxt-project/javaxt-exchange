@@ -80,10 +80,34 @@ public class CalendarEvent extends FolderItem {
   //**************************************************************************
   /** Creates a new instance of this class with an id
    */
-    public CalendarEvent(String exchangeID, Connection conn) throws ExchangeException{
-        super(exchangeID, conn);
+    public CalendarEvent(String exchangeID, Connection conn, ExtendedProperty[] AdditionalProperties) throws ExchangeException{
+        super(exchangeID, conn, AdditionalProperties);
         parseCalendarItem();
     }
+
+
+  //**************************************************************************
+  //** Constructor
+  //**************************************************************************
+  /** Creates a new instance of this class with an id
+   */
+    public CalendarEvent(String exchangeID, Connection conn) throws ExchangeException{
+        this(exchangeID, conn, null);
+    }
+
+
+  //**************************************************************************
+  //** Constructor
+  //**************************************************************************
+  /** Creates a new instance of this class using event information found in a
+   *  "*.ics" file (iCalendar Event).
+   *  http://en.wikipedia.org/wiki/ICalendar
+   */
+    public CalendarEvent(String iCalendar) throws Exception{
+        org.w3c.dom.Document xml = iCalToXML(iCalendar);
+        throw new Exception("Not Implemented.");
+    }
+
 
   //**************************************************************************
   //** Constructor
@@ -708,6 +732,16 @@ public class CalendarEvent extends FolderItem {
             msg.append("<t:ReminderMinutesBeforeStart>" + this.getReminder() + "</t:ReminderMinutesBeforeStart>");
         }
 
+
+      //Add extended properties
+        ExtendedProperty[] properties = this.getExtendedProperties();
+        if (properties!=null){
+            for (ExtendedProperty property : properties){
+                msg.append(property.toXML("t", "create"));
+            }
+        }
+
+
         msg.append("<t:Start>" + formatDate(getStartTime()) + "</t:Start>");
         msg.append("<t:End>" + formatDate(getEndTime()) + "</t:End>");
 
@@ -805,5 +839,66 @@ public class CalendarEvent extends FolderItem {
    */
     public String toString(){
         return this.getSubject();
+    }
+
+
+  //**************************************************************************
+  //** iCalToXML
+  //**************************************************************************
+  /** Used to convert an iCalendar ICS File into an XML Document.
+   */
+    private org.w3c.dom.Document iCalToXML(String iCalendar){
+        StringBuffer str = new StringBuffer();
+        java.util.ArrayList<String> nodes = new java.util.ArrayList<String>();
+        String[] rows = iCalendar.split("\r\n");
+        for (int i=0; i<rows.length; i++){
+            String row = rows[i].trim();
+
+          //Special case for wrapped lines
+            while (true){
+                if (i+1>rows.length-1) break;
+                String nextRow = rows[i+1];
+                if (nextRow.trim().length()>0 && nextRow.startsWith(" ")){
+                    i++;
+                    row += nextRow.trim();
+                }
+                else{
+                    break;
+                }
+            }
+
+            if (row.contains(":")){
+                String key = row.substring(0, row.indexOf(":")).trim();
+                String value = row.substring(row.indexOf(":")+1).trim();
+                String[] attr = new String[0];
+
+                if (key.contains(";")){
+                    attr = key.substring(key.indexOf(";")+1).split(";");
+                    key = key.substring(0, key.indexOf(";")).trim();
+                }
+                key = key.toLowerCase();
+
+                if (key.equals("begin")){
+                    nodes.add(key);
+                    str.append("<" + value.toLowerCase() + ">\r\n");
+                }
+                else if (key.equals("end")){
+                    nodes.remove(nodes.size()-1);
+                    str.append("</" + value.toLowerCase() + ">\r\n");
+                }
+                else{
+                    str.append("<" + key + ">");
+                    str.append(value);
+                    str.append("</" + key + ">\r\n");
+                }
+
+
+            }
+
+
+        }
+
+        System.out.println(str);
+        return null;
     }
 }

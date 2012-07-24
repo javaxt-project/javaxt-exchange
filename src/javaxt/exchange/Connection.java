@@ -22,13 +22,21 @@ public class Connection {
   /** Creates a new instance of Connection. 
    *  @param host URL to the Exchange Web Services (EWS) endpoint. The url
    *  typically ends with "Exchange.asmx".
-   *  @param username
+   *  @param username Username. Typically this is an email address.
    *  @param password
    */
     public Connection(String host, String username, String password) {
         this.ews = host;
         this.username = username;
         this.password = password;
+    }
+
+    public String getHost(){
+        return ews;
+    }
+    
+    public String getUserName(){
+        return username;
     }
     
 
