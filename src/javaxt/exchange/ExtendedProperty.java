@@ -31,7 +31,6 @@ public class ExtendedProperty {
     }
 
 
-    
   //**************************************************************************
   //** Constructor
   //**************************************************************************
@@ -152,5 +151,10 @@ public class ExtendedProperty {
             return (property.id.equalsIgnoreCase(this.id) && property.value.equals(this.value));
         }
         return false;
+    }
+
+  /** Creates a copy of this object. */
+    public ExtendedProperty clone(){
+        return new ExtendedProperty(id, name, type, value);
     }
 }

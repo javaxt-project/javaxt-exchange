@@ -60,8 +60,7 @@ public class FolderItem {
     protected String bodyType;
     protected java.util.HashSet<String> categories = new java.util.HashSet<String>();
     protected javaxt.utils.Date lastModified;
-
-    private java.util.HashMap<String, ExtendedProperty> extendedProperties =
+    protected java.util.HashMap<String, ExtendedProperty> extendedProperties =
             new java.util.HashMap<String, ExtendedProperty>();
 
     /** Hashmap with a list of any pending updates to be made to this item. */
@@ -492,13 +491,16 @@ public class FolderItem {
         categories.clear();
     }
 
-
+    
+    public ExtendedProperty getExtendedProperty(String name){
+        return extendedProperties.get(name);
+    }
 
 
   //**************************************************************************
   //** getExtendedProperties
   //**************************************************************************
-  /** Returns an array of ExtendedProperties associated with this contact.
+  /** Returns an array of ExtendedProperties associated with this item.
    */
     public ExtendedProperty[] getExtendedProperties(){
 
@@ -518,7 +520,7 @@ public class FolderItem {
   //**************************************************************************
   //** setExtendedProperties
   //**************************************************************************
-  /** Used to add phone numbers to a contact.
+  /** Bulk update of the ExtendedProperties associated with this item.
    */
     public void setExtendedProperties(ExtendedProperty[] extendedProperties) {
 
@@ -550,19 +552,18 @@ public class FolderItem {
         else {
             this.extendedProperties.clear();
             for (ExtendedProperty property : extendedProperties){
-                addExtendedProperty(property);
+                setExtendedProperty(property);
             }
         }
     }
 
 
-
   //**************************************************************************
-  //** addExtendedProperty
+  //** setExtendedProperty
   //**************************************************************************
-  /** Used to associate a phone number with this contact.
+  /** Used to add or update an ExtendedProperty associated with this item.
    */
-    public void addExtendedProperty(ExtendedProperty property){
+    public void setExtendedProperty(ExtendedProperty property){
 
       //Check whether this is a new property
         boolean update = false;
@@ -595,11 +596,11 @@ public class FolderItem {
     }
 
 
-
   //**************************************************************************
   //** removeExtendedProperty
   //**************************************************************************
-
+  /** Used to remove a specific ExtendedProperty associated with this item.
+   */
     public void removeExtendedProperty(ExtendedProperty property){
 
         String name = property.getName();
@@ -615,10 +616,12 @@ public class FolderItem {
         }
     }
 
+
   //**************************************************************************
   //** removeExtendedProperties
   //**************************************************************************
-
+  /** Removes all ExtendedProperties associated with this item.
+   */
     public void removeExtendedProperties(){
         ExtendedProperty[] extendedProperties = getExtendedProperties();
         if (extendedProperties!=null){
@@ -629,6 +632,12 @@ public class FolderItem {
     }
 
 
+  //**************************************************************************
+  //** getExtendedPropertyUpdates
+  //**************************************************************************
+  /** Used to generate an XML fragment used to update or delete
+   *  ExtendedProperties.
+   */
     private String getExtendedPropertyUpdates(){
 
         if (extendedProperties.isEmpty()) return "";

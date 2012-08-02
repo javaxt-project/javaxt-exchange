@@ -48,6 +48,7 @@ public class CalendarEvent extends FolderItem {
         this.categories = event.categories;
         this.updates = event.updates;
         this.lastModified = event.lastModified;
+        this.extendedProperties = event.extendedProperties;
 
       //Calendar specific information
         this.location = event.location;
