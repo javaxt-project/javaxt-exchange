@@ -815,6 +815,10 @@ public class CalendarEvent extends FolderItem {
 
         if (id==null) create(conn);
         else update("CalendarItem", "calendar", options, conn);
+
+      //Update last modified date
+        this.lastModified = new CalendarEvent(id, conn).getLastModifiedTime();
+        
         return id;
     }
 

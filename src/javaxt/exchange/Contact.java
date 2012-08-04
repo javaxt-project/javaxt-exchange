@@ -1011,6 +1011,10 @@ public class Contact extends FolderItem {
 
         if (id==null) create(conn);
         else update("Contact", "contacts", options, conn);
+
+      //Update last modified date
+        this.lastModified = new Contact(id, conn).getLastModifiedTime();
+        
         return id;
     }
 
