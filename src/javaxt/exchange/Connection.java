@@ -97,12 +97,14 @@ public class Connection {
             for (int i=0; i<childNodes.getLength(); i++){
                 org.w3c.dom.Node node = childNodes.item(i);
                 String nodeName = node.getNodeName();
+                if (nodeName.toLowerCase().endsWith("responsemessage")){
+                /*
                 if (nodeName.contains(":")) nodeName = nodeName.substring(nodeName.indexOf(":")+1);
-
-                if (nodeName.equalsIgnoreCase("CreateItemResponseMessage") || 
+                if (nodeName.equalsIgnoreCase("FindItemResponseMessage") ||
+                    nodeName.equalsIgnoreCase("CreateItemResponseMessage") ||
                     nodeName.equalsIgnoreCase("UpdateItemResponseMessage") ||
                     nodeName.equalsIgnoreCase("DeleteItemResponseMessage"))
-                {
+                */
                     String responseClass = javaxt.xml.DOM.getAttributeValue(node, "ResponseClass");
                     if (responseClass.equalsIgnoreCase("Error")){
 

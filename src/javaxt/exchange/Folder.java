@@ -4,24 +4,33 @@ package javaxt.exchange;
 //**  Folder Class
 //******************************************************************************
 /**
- *   Used to represent a folder
+ *   Used to represent a folder (e.g. "Inbox", "Contacts", etc.)
  *
  ******************************************************************************/
 
 public class Folder {
 
     private String id;
+    private String name;
+    private String changeKey;
+    private Integer totalCount;
+    private Integer unreadCount;
     private Connection conn;
-    //private String changeKey;
-    //private Integer count;
 
+
+  //**************************************************************************
+  //** Constructor
+  //**************************************************************************
+  /** This constructor is provided for application developers who wish to
+   *  extend this class.
+   */
     protected Folder(){}
 
 
   //**************************************************************************
-  //** getFolder
+  //** Constructor
   //**************************************************************************
-  /** Retrieves the folder id and item count for a given folder name.
+  /** Creates a new instance of this class using a folder name/id.
    *  @param folderName Name of the exchange folder (e.g. inbox, contacts, etc).
    */
     public Folder(String folderName, Connection conn) throws ExchangeException {
@@ -29,7 +38,12 @@ public class Folder {
         this.conn = conn;
 
         String folderID = getDistinguishedFolderId(folderName);
-        if (folderID==null) folderID = folderName;
+        if (folderID==null){
+            folderID = "<t:FolderId Id=\"" + folderName + "\"/>";
+        }
+        else{
+            folderID = "<t:DistinguishedFolderId Id=\"" + folderID + "\"/>";
+        }
 
         String msg =
         "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
@@ -51,31 +65,142 @@ public class Folder {
         */
 
 
-        + "<FolderIds><t:DistinguishedFolderId Id=\"" + folderID + "\"/></FolderIds></GetFolder>"
+        + "<FolderIds>" + folderID + "</FolderIds></GetFolder>"
         + "</soap:Body>"
         + "</soap:Envelope>";
         parseXML(conn.execute(msg));
     }
 
 
-    /*
-    public Folder(String xml) {
-        this(javaxt.xml.DOM.createDocument(xml));
+  //**************************************************************************
+  //** Constructor
+  //**************************************************************************
+  /** Private constructor used by the getFolders() method.
+   */
+    private Folder(org.w3c.dom.Node folder, Connection conn) throws ExchangeException {
+        this.conn = conn;
+        parseFolderNode(folder);
     }
 
-    public Folder(org.w3c.dom.Document xml){
-        parseXML(xml);
+
+  //**************************************************************************
+  //** getFolders
+  //**************************************************************************
+  /** Returns an array of folders found in this folder. Returns a zero length
+   *  array of no folders are found.
+   */
+    public Folder[] getFolders() throws ExchangeException {
+        java.util.ArrayList<Folder> folders = new java.util.ArrayList<Folder>();
+
+        String msg =
+        "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
+        + "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:t=\"http://schemas.microsoft.com/exchange/services/2006/types\">"
+        + "<soap:Body>"
+        + "<FindFolder Traversal=\"Shallow\" xmlns=\"http://schemas.microsoft.com/exchange/services/2006/messages\" xmlns:t=\"http://schemas.microsoft.com/exchange/services/2006/types\">"
+        + "<FolderShape><t:BaseShape>Default</t:BaseShape></FolderShape>"
+        + "<ParentFolderIds><t:FolderId Id=\"" + id + "\"/></ParentFolderIds>"
+        + "</FindFolder>"
+        + "</soap:Body>"
+        + "</soap:Envelope>";
+
+        org.w3c.dom.Document response = conn.execute(msg);
+        for (org.w3c.dom.Node node : javaxt.xml.DOM.getElementsByTagName("Folder", response)){
+            folders.add(new Folder(node, conn));
+        }
+        return folders.toArray(new Folder[folders.size()]);
     }
-    */
+
+
+  //**************************************************************************
+  //** createFolder
+  //**************************************************************************
+  /** Used to create a folder within this folder.
+   */
+    public Folder createFolder(String name) throws ExchangeException {
+        name = name.trim();
+        String msg =
+        "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
+        + "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:t=\"http://schemas.microsoft.com/exchange/services/2006/types\">"
+        + "<soap:Body>"
+        + "<CreateFolder xmlns=\"http://schemas.microsoft.com/exchange/services/2006/messages\" xmlns:t=\"http://schemas.microsoft.com/exchange/services/2006/types\">"
+        + "<ParentFolderId><t:FolderId Id=\"" + id + "\"/></ParentFolderId>"
+        + "<Folders><t:Folder><t:DisplayName>" + name + "</t:DisplayName></t:Folder></Folders>"
+        + "</CreateFolder>"
+        + "</soap:Body>"
+        + "</soap:Envelope>";
+
+        org.w3c.dom.Document response = conn.execute(msg);
+        org.w3c.dom.Node[] nodes = javaxt.xml.DOM.getElementsByTagName("Folder", response);
+        if (nodes.length>0){
+            Folder folder = new Folder(nodes[0], conn);
+            folder.name = name;
+            folder.totalCount = 0;
+            folder.unreadCount = 0;
+            return folder;
+        }
+        else throw new ExchangeException("Failed to create folder.");
+    }
+
+
+  //**************************************************************************
+  //** delete
+  //**************************************************************************
+  /** Used to delete this folder.
+   */
+    public void delete() throws ExchangeException {
+        String msg =
+        "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
+        + "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:t=\"http://schemas.microsoft.com/exchange/services/2006/types\">"
+        + "<soap:Body>"
+        + "<DeleteFolder DeleteType=\"HardDelete\" xmlns=\"http://schemas.microsoft.com/exchange/services/2006/messages\" xmlns:t=\"http://schemas.microsoft.com/exchange/services/2006/types\">"
+        + "<FolderIds><t:FolderId Id=\"" + id + "\"/></FolderIds>"
+        + "</DeleteFolder>"
+        + "</soap:Body>"
+        + "</soap:Envelope>";
+        conn.execute(msg);
+    }
+
+
 
     private void parseXML(org.w3c.dom.Document xml) throws ExchangeException {
         org.w3c.dom.Node[] nodes = javaxt.xml.DOM.getElementsByTagName("FolderId", xml);
-        if (nodes.length>0){
-            org.w3c.dom.Node folderID = nodes[0];
-            this.id = javaxt.xml.DOM.getAttributeValue(folderID, "Id");
-        }
-        if (this.id==null || this.id.length()==0) throw new ExchangeException("Failed to parse FolderId.");
+        if (nodes.length>0) parseFolderNode(nodes[0].getParentNode());
+        else throw new ExchangeException("Failed to parse FolderId.");
     }
+
+
+    private void parseFolderNode(org.w3c.dom.Node folder) throws ExchangeException {
+        org.w3c.dom.NodeList properties = folder.getChildNodes();
+        for (int i=0; i<properties.getLength(); i++){
+            org.w3c.dom.Node property = properties.item(i);
+            if (property.getNodeType()==1){
+                String key = property.getNodeName();
+                String value = property.getTextContent().trim();
+                if (key.contains(":")) key = key.substring(key.indexOf(":")+1);
+                if (key.equalsIgnoreCase("FolderId")){
+                    id = javaxt.xml.DOM.getAttributeValue(property, "Id");
+                    changeKey = javaxt.xml.DOM.getAttributeValue(property, "ChangeKey");
+                }
+                if (key.equalsIgnoreCase("DisplayName")) name = value;
+                if (key.equalsIgnoreCase("TotalCount")) totalCount = cint(value);
+                //if (key.equalsIgnoreCase("ChildFolderCount")) totalCount = cint(value);
+                if (key.equalsIgnoreCase("UnreadCount")) unreadCount = cint(value);
+            }
+        }
+
+        if (id==null || id.length()==0) throw new ExchangeException("Failed to parse Folder.");
+    }
+
+
+    private Integer cint(String str){
+        try{
+            return Integer.parseInt(str);
+        }
+        catch(Exception e){
+            return null;
+        }
+    }
+
 
   //**************************************************************************
   //** getID
@@ -90,11 +215,25 @@ public class Folder {
     public String getChangeKey(){
         return changeKey;
     }
-
-    public Integer getCount(){
-        return count;
-    }
     */
+
+
+    public String getName(){
+        return name;
+    }
+
+    public Integer getTotalCount(){
+        return totalCount;
+    }
+    
+    public Integer getUnreadCount(){
+        return unreadCount;
+    }
+
+    public String toString(){
+        return name;
+    }
+
 
 
   //**************************************************************************
@@ -102,9 +241,11 @@ public class Folder {
   //**************************************************************************
   /** Returns an XML document with shallow representations of items found in
    *  this folder.
+   *  @param maxEntries Maximum number of items to return.
+   *  @param offset Item offset. 0 implies no offset.
    */
-    protected org.w3c.dom.Document getItems(int maxEntries, int offset, java.util.ArrayList<String> additionalProperties) throws ExchangeException {
-        return getItems("<m:IndexedPageItemView MaxEntriesReturned=\"" + maxEntries + "\" Offset=\"" + offset + "\" BasePoint=\"Beginning\"/>", additionalProperties);
+    protected org.w3c.dom.Document getItems(int maxEntries, int offset, java.util.ArrayList<String> additionalProperties, String orderBy) throws ExchangeException {
+        return getItems("<m:IndexedPageItemView MaxEntriesReturned=\"" + maxEntries + "\" Offset=\"" + offset + "\" BasePoint=\"Beginning\"/>", additionalProperties, orderBy);
     }
 
 
@@ -121,8 +262,36 @@ public class Folder {
    *  representation of each item found in this folder. You can retrieve
    *  additional attributes by providing a list of properties
    *  (e.g. "calendar:TimeZone", "item:Sensitivity", etc).
+   *
+   *  @param orderBy SQL-style order by clause used to sort the results
+   *  (e.g. "item:DateTimeReceived DESC").
    */
-    protected org.w3c.dom.Document getItems(String view, java.util.ArrayList<String> additionalProperties) throws ExchangeException {
+    protected org.w3c.dom.Document getItems(String view, java.util.ArrayList<String> additionalProperties, String orderBy) throws ExchangeException {
+
+        String sort = "";
+        if (orderBy!=null){
+
+            for (String str : orderBy.split(",")){
+                str = str.trim();
+                String direction = "Ascending";
+                if (str.toUpperCase().endsWith(" ASC")){
+                    str = str.substring(0, str.lastIndexOf(" "));
+                }
+                else if (str.toUpperCase().endsWith(" DESC")){
+                    str = str.substring(0, str.lastIndexOf(" "));
+                    direction = "Descending";
+                }
+                if (str.length()>0){
+                    sort += "<t:FieldOrder Order=\"" + direction + "\">"
+                    + "<t:FieldURI FieldURI=\"" + str + "\" /></t:FieldOrder>";
+                }
+            }
+
+            if (sort.length()>0){
+                sort = "<m:SortOrder>" + sort + "</m:SortOrder>";
+            }
+        }
+
 
       //Update the view xml node. Make sure the node name is prefixed with a "m:" namespace
         if (view==null) view = "";
@@ -175,6 +344,7 @@ public class Folder {
         + "</m:ItemShape>"
 
         + view
+        + sort
 
         + "<m:ParentFolderIds>"
         + "<t:FolderId Id=\"" + id + "\"/>"

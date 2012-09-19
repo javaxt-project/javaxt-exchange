@@ -4,7 +4,8 @@ package javaxt.exchange;
 //**  Mailbox Class
 //******************************************************************************
 /**
- *   Used to represent a mailbox item.
+ *   Used to represent a Mailbox element which is used to identify a mail-
+ *   enabled Active Directory object.
  *   http://msdn.microsoft.com/en-us/library/aa565036%28v=EXCHG.140%29.aspx
  *
  ******************************************************************************/

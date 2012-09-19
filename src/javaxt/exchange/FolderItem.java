@@ -126,6 +126,7 @@ public class FolderItem {
 
 
         org.w3c.dom.Document xml = conn.execute(str.toString());
+//new javaxt.io.File("/temp/GetEmail.xml").write(xml);
         org.w3c.dom.Node[] items = javaxt.xml.DOM.getElementsByTagName("Items", xml);
         boolean foundItem = false;
         if (items.length>0){
@@ -177,6 +178,7 @@ public class FolderItem {
                 }
                 else if(nodeName.equalsIgnoreCase("Body")){
                     body = javaxt.xml.DOM.getNodeValue(outerNode);
+                    bodyType = javaxt.xml.DOM.getAttributeValue(outerNode, "BodyType");
                 }
                 else if (nodeName.equalsIgnoreCase("Categories")){
                     org.w3c.dom.NodeList childNodes = outerNode.getChildNodes();
@@ -349,6 +351,7 @@ public class FolderItem {
         return body;
     }
 
+
   //**************************************************************************
   //** setBody
   //**************************************************************************
@@ -367,6 +370,18 @@ public class FolderItem {
 
         this.body = body;
         this.bodyType = format;
+    }
+
+
+  //**************************************************************************
+  //** getBodyType
+  //**************************************************************************
+  /** Returns the text encoding used in the body of this item. Possible values
+   *  include "Best", "HTML", or "Text".
+   */
+    protected String getBodyType(){
+        bodyType = getValue(bodyType);
+        return bodyType;
     }
 
 

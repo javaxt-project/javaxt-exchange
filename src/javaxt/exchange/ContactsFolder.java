@@ -4,7 +4,7 @@ package javaxt.exchange;
 //**  ContactFolder Class
 //******************************************************************************
 /**
- *   Enter class description here
+ *   Used to represent a contact folder.
  *
  ******************************************************************************/
 
@@ -12,17 +12,23 @@ public class ContactsFolder extends Folder {
 
     private Connection conn;
 
+
   //**************************************************************************
   //** Constructor
   //**************************************************************************
-  /** Creates a new instance of ContactFolder. */
+  /** Creates a new instance of this class. */
 
     public ContactsFolder(Connection conn) throws ExchangeException {
         super("contacts", conn);
         this.conn = conn;
     }
 
-    
+
+  //**************************************************************************
+  //** getContacts
+  //**************************************************************************
+  /** Returns an array of all contacts found in the contact folder.
+   */
     public Contact[] getContacts() throws ExchangeException {
 
         java.util.ArrayList<Contact> contacts = new java.util.ArrayList<Contact>();
@@ -43,19 +49,20 @@ public class ContactsFolder extends Folder {
     }
 
 
-
+  //**************************************************************************
+  //** getContacts
+  //**************************************************************************
+  /** Returns an array of contacts.
+   *  @param maxEntries Maximum number of items to return.
+   *  @param offset Item offset. 0 implies no offset.
+   */
     public Contact[] getContacts(int numEntries, int offset) throws ExchangeException {
-
         java.util.ArrayList<Contact> contacts = new java.util.ArrayList<Contact>();
-        org.w3c.dom.NodeList nodes = getItems(numEntries, offset, null).getElementsByTagName("t:Contact");
-        //org.w3c.dom.NodeList nodes = new javaxt.io.File("/temp/exchange-findItem.xml").getXML().getElementsByTagName("t:Contact");
-
-        int numRecordsReturned = 0;
+        org.w3c.dom.NodeList nodes = getItems(numEntries, offset, null, null).getElementsByTagName("t:Contact");
         for (int i=0; i<nodes.getLength(); i++){
             org.w3c.dom.Node node = nodes.item(i);
             if (node.getNodeType()==1){
                 contacts.add(new Contact(node));
-                numRecordsReturned++;
             }
         }
         return contacts.toArray(new Contact[contacts.size()]);
@@ -65,8 +72,8 @@ public class ContactsFolder extends Folder {
   //**************************************************************************
   //** getContact
   //**************************************************************************
-  /** GetItem request */
-    
+  /** Returns a contact associated with the given exchangeID.
+   */
     public Contact getContact(String exchangeID) throws ExchangeException {
         return new Contact(exchangeID, conn);
     }

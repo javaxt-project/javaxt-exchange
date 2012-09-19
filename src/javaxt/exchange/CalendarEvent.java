@@ -684,9 +684,9 @@ public class CalendarEvent extends FolderItem {
         msg.append("<t:CalendarItem>");
 
       /*
-        Here's is an ordered list of all the contact properties. The first set
+        Here's is an ordered list of all the event properties. The first set
         is pretty generic and applies to other Exchange "Items". The second set
-        is specific to contacts. The third set is also generic and seems to
+        is specific to events. The third set is also generic and seems to
         apply to all items. WARNING -- ORDER IS VERY IMPORTANT!!! If you
         mess up the order of the properties, the save will fail - at least it
         did on my Exchange Server 2007 SP3 (8.3)
