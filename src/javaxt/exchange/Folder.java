@@ -143,6 +143,58 @@ public class Folder {
 
 
   //**************************************************************************
+  //** rename
+  //**************************************************************************
+  /** Used to rename this folder.
+   */
+    public void rename(String name) throws ExchangeException {
+        changeKey = getChangeKey(conn);
+        name = name.trim();
+        String msg =
+        "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
+        + "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:t=\"http://schemas.microsoft.com/exchange/services/2006/types\">"
+        + "<soap:Body>"
+        + "<UpdateFolder xmlns=\"http://schemas.microsoft.com/exchange/services/2006/messages\" xmlns:t=\"http://schemas.microsoft.com/exchange/services/2006/types\">"
+        + "<FolderChanges>"
+        + "<t:FolderChange>"
+                + "<t:FolderId Id=\"" + id + "\" ChangeKey=\"" + changeKey + "\"/>"
+                + "<t:Updates>"
+                    + "<t:SetFolderField>"
+                    + "<t:FieldURI FieldURI=\"folder:DisplayName\" />"
+                    + "<t:Folder><t:DisplayName>" + name + "</t:DisplayName></t:Folder>"
+                    + "</t:SetFolderField>"
+                + "</t:Updates>"
+        + "</t:FolderChange>"
+        + "</FolderChanges>"
+        + "</UpdateFolder>"
+        + "</soap:Body>"
+        + "</soap:Envelope>";
+        conn.execute(msg);
+        this.name = name;
+    }
+
+
+  //**************************************************************************
+  //** move
+  //**************************************************************************
+  /** Used to move this folder to another folder.
+   */
+    public void move(Folder destination) throws ExchangeException {
+        String msg =
+        "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
+        + "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:t=\"http://schemas.microsoft.com/exchange/services/2006/types\">"
+        + "<soap:Body>"
+        + "<MoveFolder xmlns=\"http://schemas.microsoft.com/exchange/services/2006/messages\" xmlns:t=\"http://schemas.microsoft.com/exchange/services/2006/types\">"
+        + "<ToFolderId><t:FolderId Id=\"" + destination.id + "\"/></ToFolderId>"
+        + "<FolderIds><t:FolderId Id=\"" + id + "\"/></FolderIds>"
+        + "</MoveFolder>"
+        + "</soap:Body>"
+        + "</soap:Envelope>";
+        conn.execute(msg);
+    }
+
+
+  //**************************************************************************
   //** delete
   //**************************************************************************
   /** Used to delete this folder.
@@ -161,6 +213,16 @@ public class Folder {
     }
 
 
+  //**************************************************************************
+  //** getChangeKey
+  //**************************************************************************
+  /** Used to retrieve the latest ChangeKey for this folder. This method is
+   *  required to update an item.
+   */
+    protected String getChangeKey(Connection conn) throws ExchangeException {
+        changeKey = new Folder(id, conn).changeKey;
+        return changeKey;
+    }
 
     private void parseXML(org.w3c.dom.Document xml) throws ExchangeException {
         org.w3c.dom.Node[] nodes = javaxt.xml.DOM.getElementsByTagName("FolderId", xml);

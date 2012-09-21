@@ -10,11 +10,9 @@ package javaxt.exchange;
 
 public class Connection {
 
-
     private String username;
     private String password;
     private String ews;
-
 
   //**************************************************************************
   //** Constructor
@@ -50,6 +48,7 @@ public class Connection {
     public org.w3c.dom.Document execute(String soap) throws ExchangeException {
 
         javaxt.http.Request request = new javaxt.http.Request(ews);
+        request.validateSSLCertificates(true);
         request.setCredentials(username, password);
         request.setHeader("Accept", "*/*");
         request.setHeader("Content-Type", "text/xml");

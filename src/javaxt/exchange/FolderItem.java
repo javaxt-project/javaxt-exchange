@@ -296,7 +296,7 @@ public class FolderItem {
   //**************************************************************************
   //** getChangeKey
   //**************************************************************************
-  /** Used to retrieve the ChangeKey for this contact. Note that the ChangeKey 
+  /** Used to retrieve the ChangeKey for this item. Note that the ChangeKey
    *  is set in the constructor and may not reflect the most recent value.
    */
     public String getChangeKey(){
@@ -307,7 +307,7 @@ public class FolderItem {
   //**************************************************************************
   //** getChangeKey
   //**************************************************************************
-  /** Used to retrieve the latest ChangeKey for this contact. This method is
+  /** Used to retrieve the latest ChangeKey for this item. This method is
    *  required to update an item.
    */
     protected String getChangeKey(Connection conn) throws ExchangeException {

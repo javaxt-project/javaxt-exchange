@@ -316,4 +316,19 @@ public class Email extends FolderItem {
     public boolean hasAttachments(){
         return hasAttachments;
     }
+
+
+  //**************************************************************************
+  //** delete
+  //**************************************************************************
+  /** Used to delete a message.
+   *  @param MoveToDeletedItems If true, moves the item to the deleted items
+   *  folder. If false, permanently deletes the message.
+   */
+    public void delete(boolean MoveToDeletedItems, Connection conn) throws ExchangeException {
+        java.util.HashMap<String, String> options = new java.util.HashMap<String, String>();
+        if (MoveToDeletedItems) options.put("DeleteType", "MoveToDeletedItems");
+        else options.put("DeleteType", "HardDelete");
+        super.delete(options, conn);
+    }
 }
