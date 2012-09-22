@@ -15,6 +15,7 @@ public class Folder {
     private String changeKey;
     private Integer totalCount;
     private Integer unreadCount;
+    private Integer folderCount;
     private Connection conn;
 
 
@@ -90,13 +91,31 @@ public class Folder {
    *  array of no folders are found.
    */
     public Folder[] getFolders() throws ExchangeException {
+        return getFolders("Shallow");
+    }
+
+
+  //**************************************************************************
+  //** getFolders
+  //**************************************************************************
+  /** Returns an array of folders found in this folder. Returns a zero length
+   *  array of no folders are found.
+   *  @param Traversal Possible values include "Deep", "Shallow", "SoftDeleted"
+   */
+    public Folder[] getFolders(String Traversal) throws ExchangeException {
         java.util.ArrayList<Folder> folders = new java.util.ArrayList<Folder>();
+
+        if (Traversal==null) Traversal = "";
+        if (Traversal.equalsIgnoreCase("Deep")) Traversal = "Deep";
+        else if (Traversal.equalsIgnoreCase("SoftDeleted")) Traversal = "SoftDeleted";
+        else Traversal = "Shallow";
+
 
         String msg =
         "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
         + "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:t=\"http://schemas.microsoft.com/exchange/services/2006/types\">"
         + "<soap:Body>"
-        + "<FindFolder Traversal=\"Shallow\" xmlns=\"http://schemas.microsoft.com/exchange/services/2006/messages\" xmlns:t=\"http://schemas.microsoft.com/exchange/services/2006/types\">"
+        + "<FindFolder Traversal=\"" + Traversal + "\" xmlns=\"http://schemas.microsoft.com/exchange/services/2006/messages\" xmlns:t=\"http://schemas.microsoft.com/exchange/services/2006/types\">"
         + "<FolderShape><t:BaseShape>Default</t:BaseShape></FolderShape>"
         + "<ParentFolderIds><t:FolderId Id=\"" + id + "\"/></ParentFolderIds>"
         + "</FindFolder>"
@@ -245,7 +264,7 @@ public class Folder {
                 }
                 if (key.equalsIgnoreCase("DisplayName")) name = value;
                 if (key.equalsIgnoreCase("TotalCount")) totalCount = cint(value);
-                //if (key.equalsIgnoreCase("ChildFolderCount")) totalCount = cint(value);
+                if (key.equalsIgnoreCase("ChildFolderCount")) folderCount = cint(value);
                 if (key.equalsIgnoreCase("UnreadCount")) unreadCount = cint(value);
             }
         }
@@ -290,6 +309,10 @@ public class Folder {
     
     public Integer getUnreadCount(){
         return unreadCount;
+    }
+
+    public Integer getChildFolderCount(){
+        return folderCount;
     }
 
     public String toString(){
