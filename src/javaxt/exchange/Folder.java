@@ -11,6 +11,7 @@ package javaxt.exchange;
 public class Folder {
 
     private String id;
+    private String parentID;
     private String name;
     private String changeKey;
     private Integer totalCount;
@@ -51,21 +52,18 @@ public class Folder {
         + "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:t=\"http://schemas.microsoft.com/exchange/services/2006/types\">"
         + "<soap:Body>"
         + "<GetFolder xmlns=\"http://schemas.microsoft.com/exchange/services/2006/messages\" xmlns:t=\"http://schemas.microsoft.com/exchange/services/2006/types\">"
-        + "<FolderShape><t:BaseShape>Default</t:BaseShape></FolderShape>"
-
-        
-        //This returns the LastModifiedTime for the folder. Unfortunately, this
-        //does not reflect changes made to items in this folder
-        /*
         + "<FolderShape>"
-                + "<t:BaseShape>Default</t:BaseShape>"
-                + "<t:AdditionalProperties>"
-                + "<t:ExtendedFieldURI PropertyTag=\"0x3008\" PropertyType=\"SystemTime\" />" 
-                + "</t:AdditionalProperties>"
+            + "<t:BaseShape>Default</t:BaseShape>"
+            + "<t:AdditionalProperties>"
+
+            //The following returns the LastModifiedTime for the folder. Unfortunately,
+            //this does not reflect changes made to items in this folder.
+            //+ "<t:ExtendedFieldURI PropertyTag=\"0x3008\" PropertyType=\"SystemTime\" />"
+
+            + "<t:FieldURI FieldURI=\"folder:ParentFolderId\" />"
+            + "</t:AdditionalProperties>"
+
         + "</FolderShape>"
-        */
-
-
         + "<FolderIds>" + folderID + "</FolderIds></GetFolder>"
         + "</soap:Body>"
         + "</soap:Envelope>";
@@ -116,7 +114,12 @@ public class Folder {
         + "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:t=\"http://schemas.microsoft.com/exchange/services/2006/types\">"
         + "<soap:Body>"
         + "<FindFolder Traversal=\"" + Traversal + "\" xmlns=\"http://schemas.microsoft.com/exchange/services/2006/messages\" xmlns:t=\"http://schemas.microsoft.com/exchange/services/2006/types\">"
-        + "<FolderShape><t:BaseShape>Default</t:BaseShape></FolderShape>"
+        + "<FolderShape>"
+            + "<t:BaseShape>Default</t:BaseShape>"
+            + "<t:AdditionalProperties>"
+            + "<t:FieldURI FieldURI=\"folder:ParentFolderId\" />"
+            + "</t:AdditionalProperties>"
+        + "</FolderShape>"
         + "<ParentFolderIds><t:FolderId Id=\"" + id + "\"/></ParentFolderIds>"
         + "</FindFolder>"
         + "</soap:Body>"
@@ -155,6 +158,8 @@ public class Folder {
             folder.name = name;
             folder.totalCount = 0;
             folder.unreadCount = 0;
+            folder.folderCount = 0;
+            folder.parentID = id;
             return folder;
         }
         else throw new ExchangeException("Failed to create folder.");
@@ -262,10 +267,14 @@ public class Folder {
                     id = javaxt.xml.DOM.getAttributeValue(property, "Id");
                     changeKey = javaxt.xml.DOM.getAttributeValue(property, "ChangeKey");
                 }
-                if (key.equalsIgnoreCase("DisplayName")) name = value;
-                if (key.equalsIgnoreCase("TotalCount")) totalCount = cint(value);
-                if (key.equalsIgnoreCase("ChildFolderCount")) folderCount = cint(value);
-                if (key.equalsIgnoreCase("UnreadCount")) unreadCount = cint(value);
+                else if(key.equalsIgnoreCase("ParentFolderId")){
+                    parentID = javaxt.xml.DOM.getAttributeValue(property, "Id");
+                    //javaxt.xml.DOM.getAttributeValue(property, "ChangeKey");
+                }
+                else if(key.equalsIgnoreCase("DisplayName")) name = value;
+                else if(key.equalsIgnoreCase("TotalCount")) totalCount = cint(value);
+                else if(key.equalsIgnoreCase("ChildFolderCount")) folderCount = cint(value);
+                else if(key.equalsIgnoreCase("UnreadCount")) unreadCount = cint(value);
             }
         }
 
@@ -288,8 +297,18 @@ public class Folder {
   //**************************************************************************
   /** Returns the unique Exchange ID for this folder. */
 
-    public String getExchangeID(){
+    public String getID(){
         return id;
+    }
+
+
+  //**************************************************************************
+  //** getParentID
+  //**************************************************************************
+  /** Returns the unique ID for the parent folder. */
+
+    public String getParentID(){
+        return parentID;
     }
 
     /*
@@ -298,27 +317,54 @@ public class Folder {
     }
     */
 
+  //**************************************************************************
+  //** getName
+  //**************************************************************************
+  /** Returns the name of the folder. */
 
     public String getName(){
         return name;
     }
 
+
+  //**************************************************************************
+  //** getTotalCount
+  //**************************************************************************
+  /** Returns the total number of items found in this folder. */
+
     public Integer getTotalCount(){
         return totalCount;
     }
-    
+
+
+  //**************************************************************************
+  //** getUnreadCount
+  //**************************************************************************
+  /** Returns the total number of unread items found in this folder. */
+
     public Integer getUnreadCount(){
         return unreadCount;
     }
+
+
+  //**************************************************************************
+  //** getChildFolderCount
+  //**************************************************************************
+  /** Returns the total number of folders found in this this folder. */
 
     public Integer getChildFolderCount(){
         return folderCount;
     }
 
+
+  //**************************************************************************
+  //** toString
+  //**************************************************************************
+  /** Returns the name of the folder. */
+
     public String toString(){
         return name;
     }
-
 
 
   //**************************************************************************

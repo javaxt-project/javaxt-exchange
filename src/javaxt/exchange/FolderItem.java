@@ -59,6 +59,7 @@ public class FolderItem {
     protected String body;
     protected String bodyType;
     protected java.util.HashSet<String> categories = new java.util.HashSet<String>();
+    protected java.util.HashSet<Attachment> attachments = new java.util.HashSet<Attachment>();
     protected javaxt.utils.Date lastModified;
     protected java.util.HashMap<String, ExtendedProperty> extendedProperties =
             new java.util.HashMap<String, ExtendedProperty>();
@@ -189,6 +190,15 @@ public class FolderItem {
                         }
                     }
                 }
+                else if (nodeName.equalsIgnoreCase("Attachments")){
+                    org.w3c.dom.NodeList childNodes = outerNode.getChildNodes();
+                    for (int j=0; j<childNodes.getLength(); j++){
+                        org.w3c.dom.Node childNode = childNodes.item(j);
+                        if (childNode.getNodeType()==1){
+                            attachments.add(new Attachment(childNode));
+                        }
+                    }
+                }
                 else if(nodeName.equalsIgnoreCase("LastModifiedTime")){
                     try{
                         lastModified = new javaxt.utils.Date(javaxt.xml.DOM.getNodeValue(outerNode));
@@ -238,7 +248,8 @@ public class FolderItem {
     protected void resetUpdates(){
         updates.clear();
     }
-    
+
+
   //**************************************************************************
   //** getID
   //**************************************************************************
@@ -388,11 +399,24 @@ public class FolderItem {
   //**************************************************************************
   //** getCategories
   //**************************************************************************
-  /** Returns a list of categories associated with this item.
+  /** Returns a list of categories associated with this item. Returns null if
+   *  no categories are found.
    */
     public String[] getCategories(){
         if (categories.isEmpty()) return null;
         else return categories.toArray(new String[categories.size()]);
+    }
+
+
+  //**************************************************************************
+  //** getAttachments
+  //**************************************************************************
+  /** Returns an array of attachments associated with this item. Returns null
+   *  if there are no attachments.
+   */
+    public Attachment[] getAttachments(){
+        if (attachments.isEmpty()) return null;
+        else return attachments.toArray(new Attachment[attachments.size()]);
     }
 
 

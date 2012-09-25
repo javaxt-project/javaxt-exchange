@@ -43,9 +43,11 @@ public class Connection {
   //**************************************************************************
   /** Used to send a SOAP message to the Exchange Web Services.
    *  @param soap Raw SOAP message
-   *  @return Raw HTTP response
+   *  @param parseResponse Boolean indicating whether to parse the response.
+   *  If true, will return an org.w3c.dom.Document. If false, returns an
+   *  javaxt.http.Response.
    */
-    public org.w3c.dom.Document execute(String soap) throws ExchangeException {
+    public Object execute(String soap, boolean parseResponse) throws ExchangeException {
 
         javaxt.http.Request request = new javaxt.http.Request(ews);
         request.validateSSLCertificates(true);
@@ -72,6 +74,8 @@ public class Connection {
             
         }
 
+        if (!parseResponse) return response;
+
         org.w3c.dom.Document xml = response.getXML();
         String error = parseError(xml);
         if (error!=null) throw new ExchangeException(error);
@@ -79,13 +83,35 @@ public class Connection {
         return xml;
     }
 
-    
+
+  //**************************************************************************
+  //** execute
+  //**************************************************************************
+  /** Used to send a SOAP message to the Exchange Web Services and parse the
+   *  response. Returns an return an org.w3c.dom.Document.
+   *  @param soap Raw SOAP message
+   */
+    public org.w3c.dom.Document execute(String soap) throws ExchangeException {
+        return (org.w3c.dom.Document) this.execute(soap, true);
+    }
+
+
+  //**************************************************************************
+  //** toString
+  //**************************************************************************
+  /** Returns the host, username, and password.
+   */
     public String toString(){
         return "host:  " + ews + "\r\nusername:  " + username + "\r\npassword:  " + password;
     }
 
 
-
+  //**************************************************************************
+  //** parseError
+  //**************************************************************************
+  /** Used to parse any error messages. Returns null if no error messages are
+   *  found.
+   */
     private String parseError(org.w3c.dom.Document xml){
 
         if (xml==null) return ("Invalid Server Response");
