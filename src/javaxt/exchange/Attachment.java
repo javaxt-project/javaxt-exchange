@@ -15,7 +15,26 @@ public class Attachment {
     private String name;
     private String contentType;
 
-    public Attachment(org.w3c.dom.Node node){
+
+  //**************************************************************************
+  //** Constructor
+  //**************************************************************************
+  /** Creates a new instance of this class using an attachment ID. Initiates
+   *  a "GetAttachment" request but stops downloading and parsing the response
+   *  as soon as it reaches the "Content" tag.
+   */
+    public Attachment(String id, Connection conn) throws ExchangeException, java.io.IOException {
+        java.io.InputStream inputStream = getAttachment(id, conn);
+        parseResponse(inputStream, false);
+        inputStream.close();
+        this.id = id;
+    }
+
+
+  //**************************************************************************
+  //** Constructor
+  //**************************************************************************
+    protected Attachment(org.w3c.dom.Node node){
         org.w3c.dom.NodeList childNodes = node.getChildNodes();
         for (int j=0; j<childNodes.getLength(); j++){
             org.w3c.dom.Node childNode = childNodes.item(j);
@@ -72,6 +91,23 @@ public class Attachment {
    *  attachment.
    */
     public java.io.InputStream download(Connection conn) throws ExchangeException {
+        try{
+            return parseResponse(getAttachment(id, conn), true);
+        }
+        catch(java.io.IOException e){
+            throw new ExchangeException(e.getLocalizedMessage());
+        }
+    }
+
+
+  //**************************************************************************
+  //** getAttachment
+  //**************************************************************************
+  /** Executes the "GetAttachment" request and returns the raw response as an
+   *  inputstream.
+   */
+    private java.io.InputStream getAttachment(String id, Connection conn)
+        throws java.io.IOException, ExchangeException {
 
         String msg =
         "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
@@ -85,14 +121,13 @@ public class Attachment {
         + "</soap:Envelope>";
 
         javaxt.http.Response response = (javaxt.http.Response) conn.execute(msg, false);
-        try{
-            java.io.InputStream inputStream = response.getInputStream();
-            java.io.InputStream is = parseResponse(inputStream);
-            inputStream.close();
-            return is;
+        
+        String contentEncoding = response.getHeader("Content-Encoding");
+        if (contentEncoding!=null && contentEncoding.equalsIgnoreCase("gzip")){
+            return new java.util.zip.GZIPInputStream(response.getInputStream());
         }
-        catch(java.io.IOException e){
-            throw new ExchangeException(e.getLocalizedMessage());
+        else{
+            return response.getInputStream();
         }
     }
 
@@ -105,7 +140,7 @@ public class Attachment {
    *  This is important in order to minimize memory usage when downloading
    *  large attachments.
    */
-    public static java.io.InputStream parseResponse(java.io.InputStream inputStream) 
+    private java.io.InputStream parseResponse(java.io.InputStream inputStream, boolean getContent)
         throws ExchangeException, java.io.IOException {
 
         boolean concat = true;
@@ -137,6 +172,13 @@ public class Attachment {
                     if (nodeName.contains(":")) nodeName = nodeName.substring(nodeName.indexOf(":")+1);
 
                     
+                    if (nodeName.equalsIgnoreCase("Name")){
+                        name = getNodeValue(inputStream);
+                    }
+                    else if(nodeName.equalsIgnoreCase("ContentType")){
+                        contentType = getNodeValue(inputStream);
+                    }
+                    
                     if (nodeName.toLowerCase().endsWith("responsemessage")){
                         if (node.toLowerCase().contains("error")){
                             if (!node.endsWith("/>")) node = node.substring(0, node.length()-1) + "/>";
@@ -149,7 +191,14 @@ public class Attachment {
                         }
                     }
                     else if(nodeName.equalsIgnoreCase("Content")){
-                        return new javaxt.utils.Base64.InputStream(new ContentInputStream(inputStream));
+                        if (getContent){
+                            return new javaxt.utils.Base64.InputStream(
+                                new ContentInputStream(inputStream)
+                            );
+                        }
+                        else{
+                            return null;
+                        }
                     }
                 }
 
@@ -158,6 +207,28 @@ public class Attachment {
             }
         }
         return null;
+    }
+
+
+  //**************************************************************************
+  //** getNodeValue
+  //**************************************************************************
+  /** Returns the value of a node by parsing an input stream.
+   */
+    private String getNodeValue(java.io.InputStream inputStream) throws java.io.IOException {
+        StringBuffer str = new StringBuffer();
+        int x = 0;
+        while ( (x = inputStream.read()) != -1) {
+
+            char c = (char) x;
+
+            if (c == '<'){
+                break;
+            }
+
+            str.append(c);
+        }
+        return str.toString();
     }
 
 

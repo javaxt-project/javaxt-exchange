@@ -16,7 +16,7 @@ public class Email extends FolderItem {
     private String sensitivity = "Normal";
     private Integer size;
     private boolean isRead = false;
-    private boolean hasAttachments = false;
+
 
 /*
 <t:ItemClass>IPM.Note</t:ItemClass>
@@ -58,6 +58,8 @@ public class Email extends FolderItem {
         this.body = message.body;
         this.bodyType = message.bodyType;
         this.categories = message.categories;
+        this.hasAttachments = message.hasAttachments;
+        this.attachments = message.attachments;
         this.updates = message.updates;
         this.lastModified = message.lastModified;
         this.extendedProperties = message.extendedProperties;
@@ -68,7 +70,6 @@ public class Email extends FolderItem {
         this.sensitivity = message.sensitivity;
         this.size = message.size;
         this.isRead = message.isRead;
-        this.hasAttachments = message.hasAttachments;
     }
 
 
@@ -138,9 +139,6 @@ public class Email extends FolderItem {
                 }
                 else if(nodeName.equalsIgnoreCase("IsRead")){
                     isRead = javaxt.xml.DOM.getNodeValue(outerNode).equalsIgnoreCase("true");
-                }
-                else if(nodeName.equalsIgnoreCase("HasAttachments")){
-                    hasAttachments = javaxt.xml.DOM.getNodeValue(outerNode).equalsIgnoreCase("true");
                 }
             }
         }
@@ -305,16 +303,6 @@ public class Email extends FolderItem {
             this.isRead = isRead;
             updates.put("IsRead", isRead);
         }
-    }
-
-
-  //**************************************************************************
-  //** hasAttachments
-  //**************************************************************************
-  /** Returns a boolean used to indicate whether the message has attachments.
-   */
-    public boolean hasAttachments(){
-        return hasAttachments;
     }
 
 

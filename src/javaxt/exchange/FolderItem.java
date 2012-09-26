@@ -58,6 +58,7 @@ public class FolderItem {
     protected String subject;
     protected String body;
     protected String bodyType;
+    protected boolean hasAttachments = false;
     protected java.util.HashSet<String> categories = new java.util.HashSet<String>();
     protected java.util.HashSet<Attachment> attachments = new java.util.HashSet<Attachment>();
     protected javaxt.utils.Date lastModified;
@@ -100,7 +101,7 @@ public class FolderItem {
         str.append("<t:AdditionalProperties>");
         //str.append("<t:FieldURI FieldURI=\"item:LastModifiedTime\"/>"); //<--This doesn't work...
         str.append("<t:ExtendedFieldURI PropertyTag=\"0x3008\" PropertyType=\"SystemTime\" />"); //<--This returns the LastModifiedTime!
-        
+
         if (AdditionalProperties!=null){            
             for (ExtendedProperty property : AdditionalProperties){
 
@@ -127,7 +128,6 @@ public class FolderItem {
 
 
         org.w3c.dom.Document xml = conn.execute(str.toString());
-//new javaxt.io.File("/temp/GetEmail.xml").write(xml);
         org.w3c.dom.Node[] items = javaxt.xml.DOM.getElementsByTagName("Items", xml);
         boolean foundItem = false;
         if (items.length>0){
@@ -190,7 +190,11 @@ public class FolderItem {
                         }
                     }
                 }
+                else if(nodeName.equalsIgnoreCase("HasAttachments")){
+                    hasAttachments = javaxt.xml.DOM.getNodeValue(outerNode).equalsIgnoreCase("true");
+                }
                 else if (nodeName.equalsIgnoreCase("Attachments")){
+                    System.out.println("Found Attachment!");
                     org.w3c.dom.NodeList childNodes = outerNode.getChildNodes();
                     for (int j=0; j<childNodes.getLength(); j++){
                         org.w3c.dom.Node childNode = childNodes.item(j);
@@ -405,6 +409,16 @@ public class FolderItem {
     public String[] getCategories(){
         if (categories.isEmpty()) return null;
         else return categories.toArray(new String[categories.size()]);
+    }
+
+
+  //**************************************************************************
+  //** hasAttachments
+  //**************************************************************************
+  /** Returns a boolean used to indicate whether the message has attachments.
+   */
+    public boolean hasAttachments(){
+        return hasAttachments;
     }
 
 

@@ -54,6 +54,7 @@ public class Connection {
         request.setCredentials(username, password);
         request.setHeader("Accept", "*/*");
         request.setHeader("Content-Type", "text/xml");
+        request.setHeader("Accept-Encoding", "gzip,deflate");
         request.write(soap);
 
         javaxt.http.Response response = request.getResponse();

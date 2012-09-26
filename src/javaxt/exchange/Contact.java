@@ -79,6 +79,8 @@ public class Contact extends FolderItem {
       //General information
         this.id = contact.id;
         this.categories = contact.categories;
+        this.hasAttachments = contact.hasAttachments;
+        this.attachments = contact.attachments;
         this.updates = contact.updates;
         this.lastModified = contact.lastModified;
         this.extendedProperties = contact.extendedProperties;
@@ -105,6 +107,7 @@ public class Contact extends FolderItem {
         super(exchangeID, conn, AdditionalProperties);
         parseContact();
     }
+
 
   //**************************************************************************
   //** Constructor
