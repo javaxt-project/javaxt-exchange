@@ -508,12 +508,10 @@ public class Email extends FolderItem {
         }
         
       //Save attachments
-        StringBuffer xml = new StringBuffer();
         Attachment[] attachments = this.getAttachments();
         if (attachments!=null){
             for (Attachment attachment : attachments){
                 if (attachment.getID()==null) attachment.save(conn);
-                xml.append(attachment.toXML("t"));
             }
         }
     }
