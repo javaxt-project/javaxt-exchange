@@ -13,7 +13,7 @@ package javaxt.exchange;
 public class Mailbox {
 
     private String Name;
-    private String EmailAddress;
+    private EmailAddress EmailAddress;
     private String RoutingType;
     private String MailboxType;
     private String ItemId;
@@ -24,7 +24,7 @@ public class Mailbox {
   //**************************************************************************
   /** Creates a new instance of Mailbox. */
 
-    protected Mailbox(org.w3c.dom.Node mailboxNode) {
+    protected Mailbox(org.w3c.dom.Node mailboxNode) throws ExchangeException {
         org.w3c.dom.NodeList mailboxItems = mailboxNode.getChildNodes();
 
         for (int i=0; i<mailboxItems.getLength(); i++){
@@ -38,7 +38,7 @@ public class Mailbox {
                     Name = javaxt.xml.DOM.getNodeValue(node);
                 }
                 else if(nodeName.equalsIgnoreCase("EmailAddress")){
-                    EmailAddress = javaxt.xml.DOM.getNodeValue(node);
+                    EmailAddress = new EmailAddress(javaxt.xml.DOM.getNodeValue(node));
                 }
                 else if(nodeName.equalsIgnoreCase("RoutingType")){
                     RoutingType = javaxt.xml.DOM.getNodeValue(node);
@@ -53,14 +53,18 @@ public class Mailbox {
         }
     }
 
-    public Mailbox(String name, String email){
+    public Mailbox(String name, EmailAddress email) {
         this.Name = name;
         this.EmailAddress = email;
     }
 
+    public Mailbox(String name, String email) throws ExchangeException {
+        this(name,  new EmailAddress(email));
+    }
+
     public Mailbox(Contact contact){
         this.Name = contact.getFullName();
-        this.EmailAddress = contact.getEmailAddresses()[0].toString();
+        this.EmailAddress = contact.getPrimaryEmailAddress();
     }
 
 
@@ -100,14 +104,14 @@ public class Mailbox {
     }
 
 
-    public String getEmailAddress(){
+    public EmailAddress getEmailAddress(){
         return EmailAddress;
     }
 
 
     public String toString(){
         if (Name!=null && EmailAddress!=null) return Name + " <" + EmailAddress + ">";
-        if (EmailAddress!=null) return EmailAddress;
+        if (EmailAddress!=null) return EmailAddress.toString();
         if (Name!=null) return Name;        
         return ItemId; //?
     }
@@ -121,7 +125,7 @@ public class Mailbox {
     }
 
     public int hashCode(){
-        return EmailAddress.toLowerCase().hashCode();
+        return EmailAddress.hashCode();
     }
 
 }

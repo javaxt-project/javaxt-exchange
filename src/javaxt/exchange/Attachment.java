@@ -5,7 +5,8 @@ import java.io.IOException;
 //**  Attachment Class
 //******************************************************************************
 /**
- *   Used to represent an attachment associated with a FolderItem.
+ *   Used to represent an attachment associated with a FolderItem. Includes
+ *   methods to upload and download attachments.
  *
  ******************************************************************************/
 
@@ -14,6 +15,22 @@ public class Attachment {
     private String id;
     private String name;
     private String contentType;
+    private String type; //FileAttachment or
+
+    private javaxt.io.File file;
+    private FolderItem parent;
+
+
+  //**************************************************************************
+  //** Constructor
+  //**************************************************************************
+    public Attachment(javaxt.io.File file, FolderItem parent){
+        this.type = "FileAttachment";
+        this.file = file;
+        this.name = file.getName();
+        this.contentType = file.getContentType();
+        this.parent = parent;
+    }
 
 
   //**************************************************************************
@@ -35,6 +52,9 @@ public class Attachment {
   //** Constructor
   //**************************************************************************
     protected Attachment(org.w3c.dom.Node node){
+        type = node.getNodeName();
+        if (type.contains(":")) type = type.substring(type.indexOf(":")+1);
+
         org.w3c.dom.NodeList childNodes = node.getChildNodes();
         for (int j=0; j<childNodes.getLength(); j++){
             org.w3c.dom.Node childNode = childNodes.item(j);
@@ -72,6 +92,7 @@ public class Attachment {
     }
 
     public int hashCode(){
+        if (id==null) return file.hashCode();
         return id.hashCode();
     }
 
@@ -82,6 +103,30 @@ public class Attachment {
         }
         return false;
     }
+
+
+  //**************************************************************************
+  //** save
+  //**************************************************************************
+  /** Executes a "CreateAttachment" request to upload the file to the server.
+   */
+    protected void save(Connection conn) throws ExchangeException {
+
+        if (id!=null) return; //Is it possible to update an attachment?
+
+      //Execute "CreateAttachment" request
+        javaxt.http.Request request = conn.createRequest();
+        request.write(new FileInputStream());
+        org.w3c.dom.Document xml = (org.w3c.dom.Document) conn.getResponse(request, true);
+
+      //Parse the response
+        org.w3c.dom.NodeList nodes = xml.getElementsByTagName("t:AttachmentId");
+        if (nodes!=null && nodes.getLength()>0){
+            id = javaxt.xml.DOM.getAttributeValue(nodes.item(0), "Id");
+        }
+        
+    }
+
 
 
   //**************************************************************************
@@ -282,4 +327,90 @@ public class Attachment {
         }
     }
 
+
+
+  //**************************************************************************
+  //** FileInputStream
+  //**************************************************************************
+  /** Provides an input stream with a soap message
+   */
+    private class FileInputStream extends java.io.InputStream {
+
+        private java.io.ByteArrayInputStream a, b;
+        private java.io.InputStream f;
+
+        public FileInputStream(){
+            try{
+
+            a = new java.io.ByteArrayInputStream((
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
+            + "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:t=\"http://schemas.microsoft.com/exchange/services/2006/types\">"
+            + "<soap:Body>"
+            + "<CreateAttachment xmlns=\"http://schemas.microsoft.com/exchange/services/2006/messages\" xmlns:t=\"http://schemas.microsoft.com/exchange/services/2006/types\">"
+            + "<ParentItemId Id=\"" + parent.getID() + "\" />" //ChangeKey=\"\"
+            + "<Attachments>"
+            + "<t:FileAttachment>"
+            + "<t:Name>" + getName() + "</t:Name>"
+            + "<t:ContentType>" + getContentType() + "</t:ContentType>"
+            + "<t:Content>").getBytes("UTF-8"));
+
+
+            f = new javaxt.utils.Base64.InputStream(file.getInputStream(), javaxt.utils.Base64.ENCODE);
+    /*
+    <FileAttachment>
+       <AttachmentId/>
+       <Name/>
+       <ContentType/>
+       <ContentId/>
+       <ContentLocation/>
+       <Size/>
+       <LastModifiedTime/>
+       <IsInline/>
+       <IsContactPhoto/>
+       <Content/>
+    </FileAttachment>
+     */
+            b = new java.io.ByteArrayInputStream((
+              "</t:Content>"
+            + "</t:FileAttachment>"
+            + "</Attachments>"
+            + "</CreateAttachment>"
+            + "</soap:Body>"
+            + "</soap:Envelope>").getBytes("UTF-8"));
+
+            }
+            catch(java.io.UnsupportedEncodingException e){}
+            catch(java.io.IOException e){
+                e.printStackTrace();
+            }
+        }
+
+      /** Returns false. This stream does not support the mark and reset
+       *  methods.
+       */
+        public boolean markSupported(){
+            return false;
+        }
+
+
+      /** Returns the next byte of the soap message. */
+        public int read() throws IOException {
+
+            int x = a.read();
+            if (x!=-1) return x;
+
+            x = f.read();
+            if (x!=-1) return x;
+
+            x = b.read();
+            if (x!=-1) return x;
+            else{
+                a.close();
+                b.close();
+                f.close();
+            }
+
+            return -1;
+        }
+    }
 }

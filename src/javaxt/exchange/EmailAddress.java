@@ -50,7 +50,7 @@ public class EmailAddress {
 
     
     public int hashCode(){
-        return emailAddress.hashCode();
+        return emailAddress.toLowerCase().hashCode();
     }
 
   //**************************************************************************

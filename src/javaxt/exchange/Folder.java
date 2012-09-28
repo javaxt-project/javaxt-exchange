@@ -372,11 +372,14 @@ public class Folder {
   //**************************************************************************
   /** Returns an XML document with shallow representations of items found in
    *  this folder.
-   *  @param maxEntries Maximum number of items to return.
    *  @param offset Item offset. 0 implies no offset.
+   *  @param limit Maximum number of items to return.
    */
-    protected org.w3c.dom.Document getItems(int maxEntries, int offset, java.util.ArrayList<String> additionalProperties, String orderBy) throws ExchangeException {
-        return getItems("<m:IndexedPageItemView MaxEntriesReturned=\"" + maxEntries + "\" Offset=\"" + offset + "\" BasePoint=\"Beginning\"/>", additionalProperties, orderBy);
+    protected org.w3c.dom.Document getItems(int offset, int limit, java.util.ArrayList<String> additionalProperties, String orderBy) throws ExchangeException {
+        if (offset<1) offset = 0;
+        if (limit<1) limit = 1;
+        return getItems("<m:IndexedPageItemView MaxEntriesReturned=\"" + limit + "\" Offset=\"" + offset + "\" BasePoint=\"Beginning\"/>",
+            additionalProperties, orderBy);
     }
 
 

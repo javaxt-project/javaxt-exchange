@@ -28,7 +28,7 @@ public class ContactsFolder extends Folder {
   //** getContacts
   //**************************************************************************
   /** Returns an array of all contacts found in the contact folder.
-   */
+   *
     public Contact[] getContacts() throws ExchangeException {
 
         java.util.ArrayList<Contact> contacts = new java.util.ArrayList<Contact>();
@@ -37,7 +37,7 @@ public class ContactsFolder extends Folder {
         int maxRecords = 25;
         while(true){
 
-            Contact[] arr = getContacts(maxRecords, offset);
+            Contact[] arr = getContacts(offset, maxRecords);
             for (int i=0; i<arr.length; i++){
                 contacts.add(arr[i]);
             }
@@ -47,18 +47,18 @@ public class ContactsFolder extends Folder {
 
         return contacts.toArray(new Contact[contacts.size()]);
     }
-
+*/
 
   //**************************************************************************
   //** getContacts
   //**************************************************************************
   /** Returns an array of contacts.
-   *  @param maxEntries Maximum number of items to return.
+   *  @param limit Maximum number of items to return.
    *  @param offset Item offset. 0 implies no offset.
    */
-    public Contact[] getContacts(int numEntries, int offset) throws ExchangeException {
+    public Contact[] getContacts(int offset, int limit) throws ExchangeException {
         java.util.ArrayList<Contact> contacts = new java.util.ArrayList<Contact>();
-        org.w3c.dom.NodeList nodes = getItems(numEntries, offset, null, null).getElementsByTagName("t:Contact");
+        org.w3c.dom.NodeList nodes = getItems(offset, limit, null, null).getElementsByTagName("t:Contact");
         for (int i=0; i<nodes.getLength(); i++){
             org.w3c.dom.Node node = nodes.item(i);
             if (node.getNodeType()==1){

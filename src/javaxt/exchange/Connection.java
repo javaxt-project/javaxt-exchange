@@ -36,27 +36,20 @@ public class Connection {
     public String getUserName(){
         return username;
     }
-    
 
-  //**************************************************************************
-  //** execute
-  //**************************************************************************
-  /** Used to send a SOAP message to the Exchange Web Services.
-   *  @param soap Raw SOAP message
-   *  @param parseResponse Boolean indicating whether to parse the response.
-   *  If true, will return an org.w3c.dom.Document. If false, returns an
-   *  javaxt.http.Response.
-   */
-    public Object execute(String soap, boolean parseResponse) throws ExchangeException {
 
+    protected javaxt.http.Request createRequest(){
         javaxt.http.Request request = new javaxt.http.Request(ews);
         request.validateSSLCertificates(true);
         request.setCredentials(username, password);
         request.setHeader("Accept", "*/*");
         request.setHeader("Content-Type", "text/xml");
         request.setHeader("Accept-Encoding", "gzip,deflate");
-        request.write(soap);
+        return request;
+    }
 
+
+    protected Object getResponse(javaxt.http.Request request, boolean parseResponse) throws ExchangeException {
         javaxt.http.Response response = request.getResponse();
         int status = response.getStatus();
         if (status<100) throw new ExchangeException("Failed to connect to Exchange Web Service.");
@@ -72,7 +65,7 @@ public class Connection {
             }
             if (errorMessage.trim().length()==0) errorMessage = "Failed to connect to Exchange Web Service: " + status + " - " + response.getMessage();
             throw new ExchangeException(errorMessage);
-            
+
         }
 
         if (!parseResponse) return response;
@@ -82,6 +75,22 @@ public class Connection {
         if (error!=null) throw new ExchangeException(error);
         //new javaxt.io.File("/temp/exchange-execute-" + new java.util.Date().getTime() + ".xml").write(xml);
         return xml;
+    }
+
+
+  //**************************************************************************
+  //** execute
+  //**************************************************************************
+  /** Used to send a SOAP message to the Exchange Web Services.
+   *  @param soap Raw SOAP message
+   *  @param parseResponse Boolean indicating whether to parse the response.
+   *  If true, will return an org.w3c.dom.Document. If false, returns an
+   *  javaxt.http.Response.
+   */
+    public Object execute(String soap, boolean parseResponse) throws ExchangeException {
+        javaxt.http.Request request = createRequest();
+        request.write(soap);
+        return getResponse(request, parseResponse);
     }
 
 

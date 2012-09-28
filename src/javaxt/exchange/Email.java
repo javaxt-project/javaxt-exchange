@@ -1,6 +1,9 @@
 package javaxt.exchange;
 
 //******************************************************************************
+
+import java.util.HashMap;
+
 //**  Email Message
 //******************************************************************************
 /**
@@ -16,32 +19,20 @@ public class Email extends FolderItem {
     private String sensitivity = "Normal";
     private Integer size;
     private boolean isRead = false;
+    private java.util.HashSet<Mailbox> ToRecipients = new java.util.HashSet<Mailbox>();
+    private java.util.HashSet<Mailbox> CcRecipients = new java.util.HashSet<Mailbox>();
+    private java.util.HashSet<Mailbox> BccRecipients = new java.util.HashSet<Mailbox>();
+    private String referenceId;
+    private String messageType = "Message";
 
 
-/*
-<t:ItemClass>IPM.Note</t:ItemClass>
- <t:Subject>doc rec</t:Subject>
- <t:Sensitivity>Normal</t:Sensitivity>
- <t:Size>2279</t:Size>
- <t:DateTimeSent>2012-09-17T14:26:04Z</t:DateTimeSent>
- <t:DateTimeCreated>2012-09-17T14:30:15Z</t:DateTimeCreated>
- <t:HasAttachments>false</t:HasAttachments>
- <t:ExtendedProperty>
-    <t:ExtendedFieldURI PropertyType="SystemTime" PropertyTag="0x3008"/>
-    <t:Value>2012-09-17T14:30:15Z</t:Value></t:ExtendedProperty>
- <t:From>
-   <t:Mailbox><t:Name>Ann_Liu</t:Name></t:Mailbox>
- </t:From>
- <t:IsRead>false</t:IsRead>
- */
-    
   //**************************************************************************
   //** Constructor
   //**************************************************************************
-  /** This constructor is provided for application developers who wish to
-   *  extend this class.
+  /** Used to create a new email message. The message will be saved in the
+   *  "Drafts" folder.
    */
-    protected Email(){}
+    public Email(){}
 
 
   //**************************************************************************
@@ -54,6 +45,7 @@ public class Email extends FolderItem {
 
       //General information
         this.id = message.id;
+        this.parentFolderID = message.parentFolderID;
         this.subject = message.subject;
         this.body = message.body;
         this.bodyType = message.bodyType;
@@ -70,6 +62,11 @@ public class Email extends FolderItem {
         this.sensitivity = message.sensitivity;
         this.size = message.size;
         this.isRead = message.isRead;
+        this.ToRecipients = message.ToRecipients;
+        this.CcRecipients = message.CcRecipients;
+        this.BccRecipients = message.BccRecipients;
+        this.referenceId = message.referenceId;
+        this.messageType = message.messageType;
     }
 
 
@@ -134,7 +131,38 @@ public class Email extends FolderItem {
                 else if(nodeName.equalsIgnoreCase("From")){
                     org.w3c.dom.Node[] nodes = javaxt.xml.DOM.getElementsByTagName("Mailbox", outerNode);
                     if (nodes.length>0){
-                        from = new Mailbox(nodes[0]);
+                        try{
+                            from = new Mailbox(nodes[0]);
+                        }
+                        catch(ExchangeException e){
+                        }
+                    }
+                }
+                else if(nodeName.equalsIgnoreCase("ToRecipients")){
+                    for (org.w3c.dom.Node node : javaxt.xml.DOM.getElementsByTagName("Mailbox", outerNode)){
+                        try{
+                            ToRecipients.add(new Mailbox(node));
+                        }
+                        catch(ExchangeException e){
+                        }
+                    }
+                }
+                else if(nodeName.equalsIgnoreCase("CcRecipients")){
+                    for (org.w3c.dom.Node node : javaxt.xml.DOM.getElementsByTagName("Mailbox", outerNode)){
+                        try{
+                            CcRecipients.add(new Mailbox(node));
+                        }
+                        catch(ExchangeException e){
+                        }
+                    }
+                }
+                else if(nodeName.equalsIgnoreCase("BccRecipients")){
+                    for (org.w3c.dom.Node node : javaxt.xml.DOM.getElementsByTagName("Mailbox", outerNode)){
+                        try{
+                            BccRecipients.add(new Mailbox(node));
+                        }
+                        catch(ExchangeException e){
+                        }
                     }
                 }
                 else if(nodeName.equalsIgnoreCase("IsRead")){
@@ -307,6 +335,103 @@ public class Email extends FolderItem {
 
 
   //**************************************************************************
+  //** addRecipient
+  //**************************************************************************
+  /** Used to add a recipient to this message.
+   *  @param list Possible values include "To", "Cc", or "Bcc".
+   */
+    public void addRecipient(String list, Mailbox recipient){
+        updateRecipients("add", recipient, list);
+    }
+
+
+  //**************************************************************************
+  //** removeRecipient
+  //**************************************************************************
+  /** Used to remove a recipient from this message.
+   *  @param list Possible values include "To", "Cc", or "Bcc".
+   */
+    public void removeRecipient(String list, Mailbox recipient){
+        updateRecipients("remove", recipient, list);
+    }
+
+
+  //**************************************************************************
+  //** updateRecipients
+  //**************************************************************************
+  /** Private method used to add/remove a recipient from this message.
+   */
+    private void updateRecipients(String action, Mailbox recipient, String type){
+        String updateNode = "";
+        java.util.HashSet<Mailbox> recipients = null;
+        if (type.equalsIgnoreCase("To")){
+            recipients = ToRecipients;
+            updateNode = "ToRecipients";
+        }
+        else if(type.equalsIgnoreCase("Cc")){
+            recipients = CcRecipients;
+            updateNode = "CcRecipients";
+        }
+        else if(type.equalsIgnoreCase("Bcc")){
+            recipients = BccRecipients;
+            updateNode = "BccRecipients";
+        }
+        else return; //Throw Exception?
+
+        if (action.equals("add")){
+            if (recipients.contains(recipient)) return;
+            else recipients.add(recipient);
+        }
+        else if (action.equals("remove")){
+            if (!recipients.contains(recipient)) return;
+            else recipients.remove(recipient);
+        }
+        else{
+            return;
+        }
+
+        StringBuffer xml = new StringBuffer();
+        for (Mailbox r : recipients){
+            xml.append(r.toXML("t"));
+        }
+        updates.put(updateNode, xml.toString());
+    }
+
+
+  //**************************************************************************
+  //** getToRecipients
+  //**************************************************************************
+  /** Returns an array of all the recipients on the "To" list.
+   */
+    public Mailbox[] getToRecipients(){
+        if (ToRecipients.isEmpty()) return null;
+        else return ToRecipients.toArray(new Mailbox[ToRecipients.size()]);
+    }
+
+
+  //**************************************************************************
+  //** getCcRecipients
+  //**************************************************************************
+  /** Returns an array of all the recipients on the "CC" list.
+   */
+    public Mailbox[] getCcRecipients(){
+        if (CcRecipients.isEmpty()) return null;
+        else return CcRecipients.toArray(new Mailbox[CcRecipients.size()]);
+    }
+
+
+  //**************************************************************************
+  //** getBccRecipients
+  //**************************************************************************
+  /** Returns an array of all the recipients on the "BCC" list.
+   */
+    public Mailbox[] getBccRecipients(){
+        if (BccRecipients.isEmpty()) return null;
+        else return BccRecipients.toArray(new Mailbox[BccRecipients.size()]);
+    }
+
+
+  //**************************************************************************
   //** delete
   //**************************************************************************
   /** Used to delete a message.
@@ -318,5 +443,236 @@ public class Email extends FolderItem {
         if (MoveToDeletedItems) options.put("DeleteType", "MoveToDeletedItems");
         else options.put("DeleteType", "HardDelete");
         super.delete(options, conn);
+    }
+
+
+  //**************************************************************************
+  //** forward
+  //**************************************************************************
+  /** Creates a forwarded message and saves it to the drafts folder. The
+   *  message won't be sent until the send() method is called.
+   */
+    public Email forward(Connection conn) throws ExchangeException {
+        Email email = new Email();
+        email.messageType = "ForwardItem";
+        email.referenceId = this.getID();
+        email.save(conn);
+        return new Email(email.getID(), conn);
+    }
+
+
+  //**************************************************************************
+  //** reply
+  //**************************************************************************
+  /** Creates a reply message and saves it to the drafts folder. The message
+   *  won't be sent until the send() method is called.
+   */
+    public Email reply(Connection conn) throws ExchangeException {
+        Email email = new Email();
+        email.messageType = "ReplyToItem";
+        email.referenceId = this.getID();
+        email.save(conn);
+        return new Email(email.getID(), conn);
+    }
+
+
+  //**************************************************************************
+  //** replyAll
+  //**************************************************************************
+  /** Creates a replyAll message and saves it to the drafts folder. The
+   *  message won't be sent until the send() method is called.
+   */
+    public Email replyAll(Connection conn) throws ExchangeException {
+        Email email = new Email();
+        email.messageType = "ReplyAllToItem";
+        email.referenceId = this.getID();
+        email.save(conn);
+        return new Email(email.getID(), conn);
+    }
+
+
+  //**************************************************************************
+  //** save
+  //**************************************************************************
+  /** Used to save this message. */
+
+    public void save(Connection conn) throws ExchangeException {
+
+      //Save the email message
+        if (this.getID()==null) this.create(conn);
+        else{
+            java.util.HashMap<String, String> options = new java.util.HashMap<String, String>();
+            options.put("ConflictResolution", "AutoResolve");
+            options.put("MessageDisposition", "SaveOnly");
+            super.update("Message", options, conn);
+        }
+        
+      //Save attachments
+        StringBuffer xml = new StringBuffer();
+        Attachment[] attachments = this.getAttachments();
+        if (attachments!=null){
+            for (Attachment attachment : attachments){
+                if (attachment.getID()==null) attachment.save(conn);
+                xml.append(attachment.toXML("t"));
+            }
+        }
+    }
+
+
+  //**************************************************************************
+  //** send
+  //**************************************************************************
+  /** Used to send this message. */
+
+    public void send(Connection conn) throws ExchangeException {
+
+      //Make sure there's at least one recipient before sending the email
+        if (this.getToRecipients()==null && this.getCcRecipients()==null &&
+            this.getBccRecipients()==null){
+            throw new ExchangeException("At least one recipient is required.");
+        }
+
+      //Save the message
+        save(conn);
+
+      //Send the message and create a copy in the "sentitems" folder
+        StringBuffer msg = new StringBuffer();
+        msg.append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
+        msg.append("<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:t=\"http://schemas.microsoft.com/exchange/services/2006/types\" xmlns:m=\"http://schemas.microsoft.com/exchange/services/2006/messages\">");
+        msg.append("<soap:Body>");
+        msg.append("<m:SendItem SaveItemToFolder=\"" + true + "\">");
+        msg.append("<m:ItemIds>");
+        msg.append("<t:ItemId Id=\"" + this.getID() + "\" ChangeKey=\"" + this.getChangeKey(conn) + "\" />"); //
+        msg.append("</m:ItemIds>");
+        msg.append("<m:SavedItemFolderId>");
+        msg.append("<t:DistinguishedFolderId Id=\"" + "sentitems" + "\" />");
+        msg.append("</m:SavedItemFolderId>");
+        msg.append("</m:SendItem>");
+        msg.append("</soap:Body>");
+        msg.append("</soap:Envelope>");
+        conn.execute(msg.toString());
+    }
+
+
+  /** Used to create a new email message.
+   */
+    private void create(Connection conn) throws ExchangeException {
+
+        String action = "SaveOnly";
+
+        StringBuffer msg = new StringBuffer();
+        msg.append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
+        msg.append("<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:t=\"http://schemas.microsoft.com/exchange/services/2006/types\" xmlns:m=\"http://schemas.microsoft.com/exchange/services/2006/messages\">");
+        msg.append("<soap:Body>");
+        msg.append("<m:CreateItem MessageDisposition=\"" + action + "\">");
+
+        msg.append("<m:SavedItemFolderId>");
+        if (this.getParentFolderID()!=null){
+            msg.append("<t:FolderId Id=\"" + this.getParentFolderID() + "\"/>");
+        }
+        else{
+            String folderName = "drafts";
+            if (action.equals("SendOnly") || action.equals("SendAndSaveCopy")) folderName = "sentitems";
+            msg.append("<t:DistinguishedFolderId Id=\"" + folderName + "\" />");
+        }
+        msg.append("</m:SavedItemFolderId>");
+        msg.append("<m:Items>");
+
+      /*
+        Here's is an ordered list of all email properties. 
+
+        WARNING -- ORDER IS VERY IMPORTANT!!! If you  mess up the order of the
+        properties, the operation will fail - at least it did on my Exchange
+        Server 2007 SP3 (8.3)
+
+        MimeContent, ItemId, ParentFolderId, ItemClass, Subject, Sensitivity,
+        Body, Attachments, DateTimeReceived, Size, Categories, Importance,
+        InReplyTo, IsSubmitted, IsDraft, IsFromMe, IsResend, IsUnmodified,
+        InternetMessageHeaders, DateTimeSent, DateTimeCreated, ResponseObjects,
+        ReminderDueBy, ReminderIsSet, ReminderMinutesBeforeStart, DisplayCc,
+        DisplayTo, HasAttachments, ExtendedProperty, Culture, Sender,
+        ToRecipients, CcRecipients, BccRecipients, IsReadReceiptRequested,
+        IsDeliveryReceiptRequested, ConversationIndex, ConversationTopic, From,
+        InternetMessageId, IsRead, IsResponseRequested, References, ReplyTo,
+        EffectiveRights, ReceivedBy, ReceivedRepresenting, LastModifiedName,
+        LastModifiedTime, IsAssociated, WebClientReadFormQueryString,
+        WebClientEditFormQueryString, ConversationId, UniqueBody
+      */
+
+
+        
+        msg.append("<t:" + messageType + ">");
+        if (this.getSubject()!=null) msg.append("<t:Subject>" + this.getSubject() + "</t:Subject>");
+        if (referenceId==null) msg.append("<t:Sensitivity>" + this.getSensitivity() + "</t:Sensitivity>");
+        if (this.getBody()!=null) msg.append("<t:Body BodyType=\"" + this.getBodyType() + "\">" + this.getBody() + "</t:Body>");
+
+        if (referenceId==null){
+            msg.append("<t:Importance>" + this.getImportance() + "</t:Importance>");
+        }
+        
+        Mailbox[] ToRecipients = this.getToRecipients();
+        if (ToRecipients!=null){
+            msg.append("<t:ToRecipients>");
+            for (Mailbox recipient : ToRecipients){
+                msg.append(recipient.toXML("t"));
+            }
+            msg.append("</t:ToRecipients>");
+        }
+
+        Mailbox[] CcRecipients = this.getCcRecipients();
+        if (CcRecipients!=null){
+            msg.append("<t:CcRecipients>");
+            for (Mailbox recipient : CcRecipients){
+                msg.append(recipient.toXML("t"));
+            }
+            msg.append("</t:CcRecipients>");
+        }
+
+        Mailbox[] BccRecipients = this.getBccRecipients();
+        if (BccRecipients!=null){
+            msg.append("<t:BccRecipients>");
+            for (Mailbox recipient : BccRecipients){
+                msg.append(recipient.toXML("t"));
+            }
+            msg.append("</t:BccRecipients>");
+        }
+
+        if (referenceId!=null){
+            /*
+               <IsReadReceiptRequested/>
+               <IsDeliveryReceiptRequested/>
+               <From/>
+            */
+
+
+            msg.append("<t:ReferenceItemId Id=\"" + this.referenceId + "\" ChangeKey=\"" + new Email(this.referenceId, conn).getChangeKey() + "\" />");
+            /*
+               <NewBodyContent/>
+               <ReceivedBy/>
+               <ReceivedRepresenting/>
+             */
+        }
+        
+        msg.append("</t:" + messageType + ">");
+
+
+        msg.append("</m:Items>");
+        msg.append("</m:CreateItem>");
+        msg.append("</soap:Body>");
+        msg.append("</soap:Envelope>");
+
+
+
+        org.w3c.dom.Document xml = conn.execute(msg.toString());
+
+      //Parse the response. Note that send events don't return an Item ID
+        org.w3c.dom.NodeList nodes = xml.getElementsByTagName("t:ItemId");
+        if (nodes!=null && nodes.getLength()>0){
+            id = javaxt.xml.DOM.getAttributeValue(nodes.item(0), "Id");
+        }
+    }
+
+    public String toString(){
+        return this.getSubject();
     }
 }

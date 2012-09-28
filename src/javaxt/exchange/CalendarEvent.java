@@ -42,6 +42,7 @@ public class CalendarEvent extends FolderItem {
 
       //General information
         this.id = event.id;
+        this.parentFolderID = event.parentFolderID;
         this.subject = event.subject;
         this.body = event.body;
         this.bodyType = event.bodyType;
@@ -117,7 +118,7 @@ public class CalendarEvent extends FolderItem {
   //**************************************************************************
   /** Creates a new instance of CalendarEvent. */
 
-    public CalendarEvent(org.w3c.dom.Node calendarItemNode) {
+    protected CalendarEvent(org.w3c.dom.Node calendarItemNode) throws ExchangeException {
         super(calendarItemNode);
         parseCalendarItem();
     }
@@ -128,7 +129,7 @@ public class CalendarEvent extends FolderItem {
   //**************************************************************************
   /** Used to parse an xml node with event information.
    */
-    private void parseCalendarItem(){
+    private void parseCalendarItem() throws ExchangeException {
 
         String timezone = null;
 
@@ -816,7 +817,7 @@ public class CalendarEvent extends FolderItem {
         options.put("SendMeetingInvitationsOrCancellations", "SendOnlyToChanged");
 
         if (id==null) create(conn);
-        else update("CalendarItem", "calendar", options, conn);
+        else update("CalendarItem", options, conn);
 
       //Update last modified date
         this.lastModified = new CalendarEvent(id, conn).getLastModifiedTime();

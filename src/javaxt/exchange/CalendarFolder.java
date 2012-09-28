@@ -31,7 +31,7 @@ public class CalendarFolder extends Folder {
         int maxRecords = 25;
         while(true){
 
-            CalendarEvent[] arr = getEvents(maxRecords, offset);
+            CalendarEvent[] arr = getEvents(offset, maxRecords);
             for (int i=0; i<arr.length; i++){
                 events.add(arr[i]);
             }
@@ -48,11 +48,12 @@ public class CalendarFolder extends Folder {
   //** getEvents
   //**************************************************************************
   /** Returns an array of CalendarEvents for a given range.
+   *  @param limit Maximum number of items to return.
+   *  @param offset Item offset. 0 implies no offset.
    */
-    private CalendarEvent[] getEvents(int numEntries, int offset) throws ExchangeException {
-
+    public CalendarEvent[] getEvents(int offset, int limit) throws ExchangeException {
         java.util.ArrayList<CalendarEvent> events = new java.util.ArrayList<CalendarEvent>();
-        org.w3c.dom.Document xml = getItems(numEntries, offset, props, null);
+        org.w3c.dom.Document xml = getItems(offset, limit, props, null);
         org.w3c.dom.Node[] nodes = javaxt.xml.DOM.getElementsByTagName("CalendarItem", xml);
 
         for (org.w3c.dom.Node node : nodes){
@@ -60,6 +61,7 @@ public class CalendarFolder extends Folder {
         }
         return events.toArray(new CalendarEvent[events.size()]);
     }
+
 
   //**************************************************************************
   //** getEvents

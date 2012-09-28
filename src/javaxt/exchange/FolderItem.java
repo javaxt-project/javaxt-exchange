@@ -55,6 +55,7 @@ public class FolderItem {
 
     protected String id;
     protected String changeKey;
+    protected String parentFolderID;
     protected String subject;
     protected String body;
     protected String bodyType;
@@ -174,6 +175,10 @@ public class FolderItem {
                     id = javaxt.xml.DOM.getAttributeValue(outerNode, "Id");
                     changeKey = javaxt.xml.DOM.getAttributeValue(outerNode, "ChangeKey");
                 }
+                if (nodeName.equalsIgnoreCase("ParentFolderId")){
+                    parentFolderID = javaxt.xml.DOM.getAttributeValue(outerNode, "Id");
+                    //changeKey = javaxt.xml.DOM.getAttributeValue(outerNode, "ChangeKey");
+                }
                 else if(nodeName.equalsIgnoreCase("Subject")){
                     subject = javaxt.xml.DOM.getNodeValue(outerNode);
                 }
@@ -194,7 +199,6 @@ public class FolderItem {
                     hasAttachments = javaxt.xml.DOM.getNodeValue(outerNode).equalsIgnoreCase("true");
                 }
                 else if (nodeName.equalsIgnoreCase("Attachments")){
-                    System.out.println("Found Attachment!");
                     org.w3c.dom.NodeList childNodes = outerNode.getChildNodes();
                     for (int j=0; j<childNodes.getLength(); j++){
                         org.w3c.dom.Node childNode = childNodes.item(j);
@@ -280,6 +284,16 @@ public class FolderItem {
 
 
   //**************************************************************************
+  //** getParentFolderID
+  //**************************************************************************
+  /** Returns the unique id of the item's folder.
+   */
+    public String getParentFolderID(){
+        return parentFolderID;
+    }
+
+
+  //**************************************************************************
   //** getLastModifiedTime
   //**************************************************************************
   /** Returns the timestamp for when this item was last modified. Note that
@@ -290,7 +304,6 @@ public class FolderItem {
         return lastModified;
     }
 
-    
 
   //**************************************************************************
   //** getLastModifiedTime
@@ -376,11 +389,25 @@ public class FolderItem {
         body = getValue(body);
         format = getValue(format);
         if (format==null) format = "Text";
+        else{
+            format = format.trim();
+            if (format.equalsIgnoreCase("Best")) format = "Best";
+            else if (format.equalsIgnoreCase("HTML")) format = "HTML";
+            else if (format.equalsIgnoreCase("Text")) format = "Text";
+        }
+
 
 
         if (id!=null) {
             if (body==null && this.body!=null) updates.put("Body", null);
-            if (body!=null && !body.equals(this.body)) updates.put("Body", body);
+            if (body!=null && (!body.equals(this.body) || !format.equals(this.bodyType))){
+
+                StringBuffer xml = new StringBuffer();
+                xml.append("<t:SetItemField><t:FieldURI FieldURI=\"item:Body\" /><t:Message><t:Body BodyType=\"" + format + "\">");
+                xml.append(body);
+                xml.append("</t:Body></t:Message></t:SetItemField>");
+                updates.put("Body", xml.toString());
+            }
         }
 
         this.body = body;
@@ -415,7 +442,7 @@ public class FolderItem {
   //**************************************************************************
   //** hasAttachments
   //**************************************************************************
-  /** Returns a boolean used to indicate whether the message has attachments.
+  /** Returns a boolean used to indicate whether this item has attachments.
    */
     public boolean hasAttachments(){
         return hasAttachments;
@@ -432,12 +459,20 @@ public class FolderItem {
         if (attachments.isEmpty()) return null;
         else return attachments.toArray(new Attachment[attachments.size()]);
     }
+    
+    public void removeAttachment(Attachment attachment){
+        attachments.remove(attachment);
+    }
+    
+    public void addAttachment(Attachment attachment){
+        attachments.add(attachment);
+    }
 
 
   //**************************************************************************
   //** setCategories
   //**************************************************************************
-  /** Used to add categories to a contact.
+  /** Used to define categories for this item.
    */
     public void setCategories(String[] categories){
 
@@ -476,7 +511,7 @@ public class FolderItem {
   //**************************************************************************
   //** addCategory
   //**************************************************************************
-  /** Used to add a category to a contact.
+  /** Used to add a category to this item.
    */
     public void addCategory(String category){
 
@@ -507,7 +542,7 @@ public class FolderItem {
   //**************************************************************************
   //** removeCategory
   //**************************************************************************
-  /**  Used to remove a category associated with this contact.
+  /**  Used to remove a category associated with this item.
    */
     public void removeCategory(String category){
 
@@ -534,7 +569,7 @@ public class FolderItem {
   //**************************************************************************
   //** removeCategories
   //**************************************************************************
-  /**  Used to remove all categories associated with this contact.
+  /**  Used to remove all categories associated with this item.
    */
     public void removeCategories(){
         if (id!=null && !categories.isEmpty()){
@@ -770,20 +805,25 @@ public class FolderItem {
   //**************************************************************************
   //** update
   //**************************************************************************
-  /** Used to update an item.
+  /** Used to update this item using the "UpdateItem" web method.
+   *  http://msdn.microsoft.com/en-us/library/aa580254%28v=exchg.140%29.aspx
    *
-   *  @param itemName Name of the item being updated (e.g. "CalendarItem",
-   *  "Contact", etc.)
-   *  @param namespace Default namespace associated with the itemName (e.g.
-   *  "calendar", "contacts", etc.).
+   *  @param itemName Name/Type of item being updated (e.g. "Message",
+   *  "Contact", "CalendarItem", etc.). A complete list of items can be
+   *  found here:
+   *  http://msdn.microsoft.com/en-us/library/aa565652%28v=exchg.140%29.aspx
+   *
    *  @param options Hashmap containing key/value pairs representing update
-   *  options. These options are inserted as attributes into the UpdateItem node.
-   *  Example: ConflictResolution="AutoResolve" and SendMeetingInvitationsOrCancellations="SendOnlyToChanged"
+   *  options. Valid keys include "ConflictResolution", "MessageDisposition",
+   *  and "SendMeetingInvitationsOrCancellations".
    */
-    protected void update(String itemName, String namespace, java.util.HashMap<String, String> options, Connection conn) throws ExchangeException {
+    protected void update(String itemName, java.util.HashMap<String, String> options, Connection conn) throws ExchangeException {
 
         if (updates.isEmpty()) return;
+System.out.println("Update " + itemName);
 
+      //Convert the options parameter into xml attributes. These attributes
+      //are inserted into the "UpdateItem" node.
         String attr = "";
         if (options!=null){
             java.util.Iterator<String> it = options.keySet().iterator();
@@ -808,7 +848,7 @@ public class FolderItem {
         while (it.hasNext()){
             String key = it.next();
             Object value = updates.get(key);
-            if (key.equalsIgnoreCase("Categories")) namespace = "item";
+            String namespace = getNameSpace(key, itemName);
 
             if (value==null){
                 System.out.println("Delete " + key);
@@ -909,5 +949,135 @@ System.out.println(msg + "\r\n");
         if (date==null) return null;
         String d = date.toString("yyyy-MM-dd HH:mm:ssZ").replace(" ", "T");
         return d.substring(0, d.length()-2) + ":" + d.substring(d.length()-2);
+    }
+
+
+  //**************************************************************************
+  //** getNameSpace
+  //**************************************************************************
+  /** Returns the namespace associated with a given field. This is critical
+   *  when updating items.
+   */
+    public static String getNameSpace(String fieldName, String itemName){
+
+        java.util.HashSet<String> namespace = namespaces.get(fieldName);
+        if (namespace!=null){
+            if (namespace.size()==1) return namespace.iterator().next();
+            else{
+                //System.out.println("Multiple values for " + fieldName + ". What matches with " + itemName + "?");
+
+                String[] possibleValues = new String[]{"item"};
+                if (itemName.equals("Item")){
+                    possibleValues = new String[]{"item"};
+                }
+                if (itemName.equals("Message")){
+                    possibleValues = new String[]{"message", "item"};
+                }
+                if (itemName.equals("Contact")){
+                    possibleValues = new String[]{"contacts", "item"};
+                }
+                if (itemName.equals("CalendarItem")){
+                    possibleValues = new String[]{"calendar", "item"};
+                }
+
+               /** TODO: Need to come up with more mappings! Here's a list of
+                 * all possible namespaces:
+                   - message
+                   - folder
+                   - distributionlist
+                   - postitem
+                   - task
+                   - meeting
+                   - item
+                   - conversation
+                   - meetingRequest
+                   - contacts
+                   - calendar
+
+                   And here's a list of every possible "item":
+
+                   - Item
+                   - Message
+                   - CalendarItem
+                   - Contact
+                   - DistributionList
+                   - MeetingMessage
+                   - MeetingRequest
+                   - MeetingResponse
+                   - MeetingCancellation
+                   - Task
+                   - ReplyToItem
+                   - ForwardItem
+                   - ReplyAllToItem
+                   - AcceptItem
+                   - TentativelyAcceptItem
+                   - DeclineItem
+                   - CancelCalendarItem
+                   - RemoveItem
+                   - PostReplyItem
+                   - SuppressReadReceipt
+                   - AcceptSharingInvitation
+                 */
+
+                for (String v : possibleValues){
+                    if (namespace.contains(v)){
+                        java.util.Iterator<String> it = namespace.iterator();
+                        while (it.hasNext()){
+                            String val = it.next();
+                            if (val.equals(v)) return val;
+                        }
+                    }
+                }
+            }
+        }
+
+
+        return null;
+    }
+
+    private static final java.util.HashMap<String, java.util.HashSet<String>> namespaces = getNameSpaces();
+    private static final java.util.HashMap<String, java.util.HashSet<String>> getNameSpaces(){
+        String fieldURIs = "calendar:AdjacentMeetingCount,calendar:AdjacentMeetings,calendar:AllowNewTimeProposal,calendar:AppointmentReplyTime,calendar:AppointmentSequenceNumber,calendar:AppointmentState,calendar:CalendarItemType,calendar:ConferenceType,calendar:ConflictingMeetingCount,calendar:ConflictingMeetings,calendar:DateTimeStamp,calendar:DeletedOccurrences,calendar:Duration,calendar:End,calendar:EndTimeZone,calendar:FirstOccurrence,calendar:IsAllDayEvent,calendar:IsCancelled,calendar:IsMeeting,calendar:IsOnlineMeeting,calendar:IsRecurring,calendar:IsResponseRequested,calendar:LastOccurrence,calendar:LegacyFreeBusyStatus,calendar:Location,calendar:MeetingRequestWasSent,calendar:MeetingTimeZone,calendar:MeetingWorkspaceUrl,calendar:ModifiedOccurrences,calendar:MyResponseType,calendar:NetShowUrl,calendar:OptionalAttendees,calendar:Organizer,calendar:OriginalStart,calendar:Recurrence,calendar:RecurrenceId,calendar:RequiredAttendees,calendar:Resources,calendar:Start,calendar:StartTimeZone,calendar:TimeZone,calendar:UID,calendar:When,contacts:Alias,contacts:AssistantName,contacts:Birthday,contacts:BusinessHomePage,contacts:Children,contacts:Companies,contacts:CompanyName,contacts:CompleteName,contacts:ContactSource,contacts:Culture,contacts:Department,contacts:DirectoryId,contacts:DirectReports,contacts:DisplayName,contacts:EmailAddresses,contacts:FileAs,contacts:FileAsMapping,contacts:Generation,contacts:GivenName,contacts:HasPicture,contacts:HasPicture,contacts:ImAddresses,contacts:Initials,contacts:JobTitle,contacts:Manager,contacts:ManagerMailbox,contacts:MiddleName,contacts:Mileage,contacts:MSExchangeCertificate,contacts:Nickname,contacts:Notes,contacts:OfficeLocation,contacts:PhoneNumbers,contacts:PhoneticFirstName,contacts:PhoneticFullName,contacts:PhoneticLastName,contacts:Photo,contacts:PhysicalAddresses,contacts:PostalAddressIndex,contacts:Profession,contacts:SpouseName,contacts:Surname,contacts:UserSMIMECertificate,contacts:WeddingAnniversary,conversation:Categories,conversation:ConversationId,conversation:ConversationTopic,conversation:FlagStatus,conversation:GlobalCategories,conversation:GlobalFlagStatus,conversation:GlobalHasAttachments,conversation:GlobalImportance,conversation:GlobalItemClasses,conversation:GlobalItemIds,conversation:GlobalLastDeliveryTime,conversation:GlobalMessageCount,conversation:GlobalSize,conversation:GlobalUniqueRecipients,conversation:GlobalUniqueSenders,conversation:GlobalUniqueUnreadSenders,conversation:GlobalUnreadCount,conversation:HasAttachments,conversation:Importance,conversation:ItemClasses,conversation:ItemIds,conversation:LastDeliveryTime,conversation:MessageCount,conversation:Size,conversation:UniqueRecipients,conversation:UniqueSenders,conversation:UniqueUnreadSenders,conversation:UnreadCount,distributionlist:Members,folder:ChildFolderCount,folder:DisplayName,folder:EffectiveRights,folder:FolderClass,folder:FolderId,folder:ManagedFolderInformation,folder:ParentFolderId,folder:PermissionSet,folder:SearchParameters,folder:SharingEffectiveRights,folder:TotalCount,folder:UnreadCount,item:Attachments,item:Body,item:Categories,item:ConversationId,item:Culture,item:DateTimeCreated,item:DateTimeReceived,item:DateTimeSent,item:DisplayCc,item:DisplayTo,item:EffectiveRights,item:HasAttachments,item:Importance,item:InReplyTo,item:InternetMessageHeaders,item:IsAssociated,item:IsDraft,item:IsFromMe,item:IsResend,item:IsSubmitted,item:IsUnmodified,item:ItemClass,item:ItemId,item:LastModifiedName,item:LastModifiedTime,item:MimeContent,item:ParentFolderId,item:ReminderDueBy,item:ReminderIsSet,item:ReminderMinutesBeforeStart,item:ResponseObjects,item:Sensitivity,item:Size,item:Subject,item:UniqueBody,item:WebClientEditFormQueryString,item:WebClientReadFormQueryString,meeting:AssociatedCalendarItemId,meeting:HasBeenProcessed,meeting:IsDelegated,meeting:IsOutOfDate,meeting:ResponseType,meetingRequest:IntendedFreeBusyStatus,meetingRequest:MeetingRequestType,message:BccRecipients,message:CcRecipients,message:ConversationIndex,message:ConversationTopic,message:From,message:InternetMessageId,message:IsDeliveryReceiptRequested,message:IsRead,message:IsReadReceiptRequested,message:IsResponseRequested,message:References,message:ReplyTo,message:Sender,message:ToRecipients,postitem:PostedTime,task:ActualWork,task:AssignedTime,task:BillingInformation,task:ChangeCount,task:Companies,task:CompleteDate,task:Contacts,task:DelegationState,task:Delegator,task:DueDate,task:IsAssignmentEditable,task:IsComplete,task:IsRecurring,task:IsTeamTask,task:Mileage,task:Owner,task:PercentComplete,task:Recurrence,task:StartDate,task:Status,task:StatusDescription,task:TotalWork";
+
+        java.util.HashMap<String, java.util.HashSet<String>> namespaces = new java.util.HashMap<String, java.util.HashSet<String>>();
+        java.util.HashSet<String> uniqueKeys = new java.util.HashSet<String>();
+        java.util.HashSet<String> duplicateKeys = new java.util.HashSet<String>();
+
+
+        for (String row : fieldURIs.split(",")){
+            String[] col = row.split(":");
+            if (col.length>1){
+                String key = col[0];
+                String value = col[1];
+
+                java.util.HashSet<String> keys = namespaces.get(value);
+                if (keys==null){
+                    keys = new java.util.HashSet<String>();
+                    namespaces.put(value, keys);
+                }
+                keys.add(key);
+
+                if (uniqueKeys.contains(value)) duplicateKeys.add(value);
+                else uniqueKeys.add(value);
+
+                //System.out.println(col[0] + "\t" + col[1]);
+            }
+        }
+
+        /*
+        java.util.Iterator<String> it = duplicateKeys.iterator();
+        while (it.hasNext()){
+            String key = it.next();
+            System.out.println("\r\n" + key);
+            java.util.Iterator<String> i2 = namespaces.get(key).iterator();
+            while (i2.hasNext()){
+                String ns = i2.next();
+                System.out.println(" - " + ns);
+            }
+        }
+        */
+
+
+        return namespaces;
     }
 }

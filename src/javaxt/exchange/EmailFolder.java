@@ -38,13 +38,13 @@ public class EmailFolder extends Folder {
   //** getMail
   //**************************************************************************
   /** Returns an array of email messages found in this folder.
-   *  @param maxEntries Maximum number of items to return.
+   *  @param limit Maximum number of items to return.
    *  @param offset Item offset. 0 implies no offset.
    *  @param orderBy
    */
-    public Email[] getMail(int numEntries, int offset, String orderBy) throws ExchangeException {
+    public Email[] getMail(int offset, int limit, String orderBy) throws ExchangeException {
         java.util.ArrayList<Email> messages = new java.util.ArrayList<Email>();
-        org.w3c.dom.NodeList nodes = getItems(numEntries, offset, props, orderBy).getElementsByTagName("t:Message");
+        org.w3c.dom.NodeList nodes = getItems(offset, limit, props, orderBy).getElementsByTagName("t:Message");
         for (int i=0; i<nodes.getLength(); i++){
             org.w3c.dom.Node node = nodes.item(i);
             if (node.getNodeType()==1){

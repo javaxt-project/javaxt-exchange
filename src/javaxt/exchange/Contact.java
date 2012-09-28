@@ -78,6 +78,7 @@ public class Contact extends FolderItem {
 
       //General information
         this.id = contact.id;
+        this.parentFolderID = contact.parentFolderID;
         this.categories = contact.categories;
         this.hasAttachments = contact.hasAttachments;
         this.attachments = contact.attachments;
@@ -679,7 +680,13 @@ public class Contact extends FolderItem {
         }
     }
 
-    
+    public EmailAddress getPrimaryEmailAddress(){
+        //TODO: Add primary attribute to email addresses!
+        EmailAddress[] email = getEmailAddresses();
+        if (email==null) return null;
+        else return email[0];
+    }
+
 
   //**************************************************************************
   //** getEmailAddresses
@@ -1013,7 +1020,7 @@ public class Contact extends FolderItem {
         options.put("ConflictResolution", "AutoResolve");
 
         if (id==null) create(conn);
-        else update("Contact", "contacts", options, conn);
+        else update("Contact", options, conn);
 
       //Update last modified date
         this.lastModified = new Contact(id, conn).getLastModifiedTime();
