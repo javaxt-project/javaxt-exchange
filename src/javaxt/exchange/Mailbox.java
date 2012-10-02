@@ -118,14 +118,16 @@ public class Mailbox {
 
 
     public boolean equals(Object obj){
-        if (obj instanceof Mailbox){
-            return ((Mailbox) obj).hashCode()==this.hashCode();
+        if (obj!=null){
+            if (obj instanceof Mailbox){
+                return ((Mailbox) obj).hashCode()==this.hashCode();
+            }
         }
         return false;
     }
 
     public int hashCode(){
-        return EmailAddress.hashCode();
+        return (EmailAddress != null) ? EmailAddress.hashCode() : 0;
     }
 
 }

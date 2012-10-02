@@ -15,8 +15,9 @@ public class Attachment {
     private String id;
     private String name;
     private String contentType;
-    private String type; //FileAttachment or
+    private String type; //FileAttachment or ItemAttachment
 
+    private FolderItem item;
     private javaxt.io.File file;
     private FolderItem parent;
 
@@ -24,11 +25,27 @@ public class Attachment {
   //**************************************************************************
   //** Constructor
   //**************************************************************************
+  /** Creates a new instance of this class using a file.
+   */
     public Attachment(javaxt.io.File file, FolderItem parent){
         this.type = "FileAttachment";
         this.file = file;
         this.name = file.getName();
         this.contentType = file.getContentType();
+        this.parent = parent;
+    }
+
+
+  //**************************************************************************
+  //** Constructor
+  //**************************************************************************
+  /** Creates a new instance of this class using another Exchange item.
+   *  @param item Item, Message, CalendarItem, Contact, Task, MeetingMessage,
+   *  MeetingRequest, MeetingResponse, or MeetingCancellation.
+   */
+    public Attachment(FolderItem item, FolderItem parent){
+        this.type = "ItemAttachment";
+        this.item = item;
         this.parent = parent;
     }
 
@@ -51,6 +68,9 @@ public class Attachment {
   //**************************************************************************
   //** Constructor
   //**************************************************************************
+  /** Creates a new instance of this class using an XML node from a "GetItem"
+   *  response message.
+   */
     protected Attachment(org.w3c.dom.Node node){
         type = node.getNodeName();
         if (type.contains(":")) type = type.substring(type.indexOf(":")+1);
@@ -91,15 +111,30 @@ public class Attachment {
         return name;
     }
 
+
+  //**************************************************************************
+  //** hashCode
+  //**************************************************************************
+  /** Returns the hashCode associated with the attachment ID. If the attachment
+   *  has not been saved/uploaded, then a temporary hashCode is assigned.
+   */
     public int hashCode(){
-        if (id==null) return file.hashCode();
-        return id.hashCode();
+        if (id==null){
+            if (type.equals("FileAttachment")) return file.hashCode();
+            else return item.hashCode();
+        }
+        return (id != null) ? id.hashCode() : 0;
     }
 
+
+  //**************************************************************************
+  //** equals
+  //**************************************************************************
     public boolean equals(Object obj){
-        if (obj==null) return false;
-        if (obj instanceof Attachment){
-            return ((Attachment) obj).id.equals(id);
+        if (obj!=null){
+            if (obj instanceof Attachment){
+                return ((Attachment) obj).id.equals(id); //compare hashcodes instead?
+            }
         }
         return false;
     }
@@ -113,6 +148,7 @@ public class Attachment {
     protected void save(Connection conn) throws ExchangeException {
 
         if (id!=null) return; //Is it possible to update an attachment?
+        if (!type.equals("FileAttachment")) throw new ExchangeException("Not implemented.");
 
       //Execute "CreateAttachment" request
         javaxt.http.Request request = conn.createRequest();
@@ -128,7 +164,6 @@ public class Attachment {
     }
 
 
-
   //**************************************************************************
   //** download
   //**************************************************************************
@@ -136,6 +171,7 @@ public class Attachment {
    *  attachment.
    */
     public java.io.InputStream download(Connection conn) throws ExchangeException {
+        if (!type.equals("FileAttachment")) throw new ExchangeException("Not implemented.");
         try{
             return parseResponse(getAttachment(id, conn), true);
         }

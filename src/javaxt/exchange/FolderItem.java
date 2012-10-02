@@ -259,6 +259,16 @@ public class FolderItem {
 
 
   //**************************************************************************
+  //** hashCode
+  //**************************************************************************
+  /** Returns a hashCode associated with the item ID, or 0 if it is null.
+   */
+    public int hashCode(){
+        return (id != null) ? id.hashCode() : 0;
+    }
+
+
+  //**************************************************************************
   //** getID
   //**************************************************************************
   /** Used to get the unique id associated with this item.
@@ -397,6 +407,23 @@ public class FolderItem {
         }
 
 
+      //Exchange allows clients to provide an HTML fragment instead of a full
+      //html document. This becomes an issue when updating an item because
+      //the HTML fragment will always differ from the HTML document stored in
+      //Exchange. As a result, the body will always be updated when saving
+      //or updating an item. To circumvent this, we convert the HTML fragment
+      //into a full HTML document before comparing with the original body.
+        if (body!=null && !body.toLowerCase().contains("<html") && this.bodyType.equals("HTML")){
+            body = "<html>\n"+
+            "<head>\n" +
+            "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">\n" +
+            "</head>\n" +
+            "<body>\n" +
+            body +
+            "\n</body>\n" +
+            "</html>\n";
+        }
+
 
         if (id!=null) {
             if (body==null && this.body!=null) updates.put("Body", null);
@@ -404,7 +431,7 @@ public class FolderItem {
 
                 StringBuffer xml = new StringBuffer();
                 xml.append("<t:SetItemField><t:FieldURI FieldURI=\"item:Body\" /><t:Message><t:Body BodyType=\"" + format + "\">");
-                xml.append(body);
+                xml.append(wrap(body));
                 xml.append("</t:Body></t:Message></t:SetItemField>");
                 updates.put("Body", xml.toString());
             }
@@ -818,9 +845,7 @@ public class FolderItem {
    *  and "SendMeetingInvitationsOrCancellations".
    */
     protected void update(String itemName, java.util.HashMap<String, String> options, Connection conn) throws ExchangeException {
-
         if (updates.isEmpty()) return;
-System.out.println("Update " + itemName);
 
       //Convert the options parameter into xml attributes. These attributes
       //are inserted into the "UpdateItem" node.
@@ -935,9 +960,29 @@ System.out.println(msg + "\r\n");
         if (val!=null){
             val = val.trim();
             if (val.length()==0) val = null;
+
+            if (val.trim().startsWith("<![CDATA[")){
+                System.out.println(val);
+                val = val.substring(val.indexOf("<![CDATA[") + 9, val.lastIndexOf("]]>"));
+                System.out.println(val);
+                return val;
+            }
         }
         return val;
     }
+    protected String wrap(String body){
+        body = getValue(body);
+
+        if (body==null) return "";
+        else {
+            if (!body.trim().startsWith("<![CDATA[")){
+                return "<![CDATA[" + body + "]]>";
+            }
+            else return body;
+        }
+    }
+
+
 
   //**************************************************************************
   //** formatDate

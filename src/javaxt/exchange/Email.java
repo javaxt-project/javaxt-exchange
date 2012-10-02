@@ -1,9 +1,6 @@
 package javaxt.exchange;
 
 //******************************************************************************
-
-import java.util.HashMap;
-
 //**  Email Message
 //******************************************************************************
 /**
@@ -42,6 +39,10 @@ public class Email extends FolderItem {
    *  effectively creating a clone.
    */
     public Email(javaxt.exchange.Email message){
+        this.init(message);
+    }
+
+    private void init(javaxt.exchange.Email message){
 
       //General information
         this.id = message.id;
@@ -291,14 +292,31 @@ public class Email extends FolderItem {
         }
     }
 
+
   //**************************************************************************
-  //** getSender
+  //** getFrom
   //**************************************************************************
   /** Returns the Mailbox associated with the sender.
    */
-    public Mailbox getSender(){
+    public Mailbox getFrom(){
         return from;
     }
+
+
+  //**************************************************************************
+  //** setFrom
+  //**************************************************************************
+  /** Used to set the sender.
+   *
+    public void setFrom(Mailbox from){
+
+        if (id!=null) {
+            if (from==null && this.from!=null) updates.put("From", null);
+            if (from!=null && !from.equals(this.from)) updates.put("From", from.toXML("t"));
+        }
+        this.from = from;
+    }
+    */
 
 
   //**************************************************************************
@@ -327,9 +345,11 @@ public class Email extends FolderItem {
   /** Returns a boolean used to indicate whether the message has been read.
    */
     public void setIsRead(boolean isRead){
-        if (this.isRead!=isRead){
-            this.isRead = isRead;
-            updates.put("IsRead", isRead);
+        if (id!=null) {
+            if (this.isRead!=isRead){
+                this.isRead = isRead;
+                updates.put("IsRead", isRead);
+            }
         }
     }
 
@@ -390,11 +410,13 @@ public class Email extends FolderItem {
             return;
         }
 
-        StringBuffer xml = new StringBuffer();
-        for (Mailbox r : recipients){
-            xml.append(r.toXML("t"));
+        if (id!=null) {
+            StringBuffer xml = new StringBuffer();
+            for (Mailbox r : recipients){
+                xml.append(r.toXML("t"));
+            }
+            updates.put(updateNode, xml.toString());
         }
-        updates.put(updateNode, xml.toString());
     }
 
 
@@ -453,6 +475,7 @@ public class Email extends FolderItem {
    *  message won't be sent until the send() method is called.
    */
     public Email forward(Connection conn) throws ExchangeException {
+        if (getID()==null) throw new ExchangeException("Can't forward message.");
         Email email = new Email();
         email.messageType = "ForwardItem";
         email.referenceId = this.getID();
@@ -468,6 +491,7 @@ public class Email extends FolderItem {
    *  won't be sent until the send() method is called.
    */
     public Email reply(Connection conn) throws ExchangeException {
+        if (getID()==null) throw new ExchangeException("Can't reply to message.");
         Email email = new Email();
         email.messageType = "ReplyToItem";
         email.referenceId = this.getID();
@@ -483,6 +507,7 @@ public class Email extends FolderItem {
    *  message won't be sent until the send() method is called.
    */
     public Email replyAll(Connection conn) throws ExchangeException {
+        if (getID()==null) throw new ExchangeException("Can't reply to message.");
         Email email = new Email();
         email.messageType = "ReplyAllToItem";
         email.referenceId = this.getID();
@@ -514,14 +539,18 @@ public class Email extends FolderItem {
                 if (attachment.getID()==null) attachment.save(conn);
             }
         }
+
+      //Reset all the attributes of this item to reflect what's in Exchange
+        init(new Email(id, conn));
     }
 
 
   //**************************************************************************
   //** send
   //**************************************************************************
-  /** Used to send this message. */
-
+  /** Used to send this message. A copy of this message will be saves in the
+   *  "Sent" folder.
+   */
     public void send(Connection conn) throws ExchangeException {
 
       //Make sure there's at least one recipient before sending the email
@@ -552,6 +581,9 @@ public class Email extends FolderItem {
     }
 
 
+  //**************************************************************************
+  //** create
+  //**************************************************************************
   /** Used to create a new email message.
    */
     private void create(Connection conn) throws ExchangeException {
@@ -602,10 +634,19 @@ public class Email extends FolderItem {
         msg.append("<t:" + messageType + ">");
         if (this.getSubject()!=null) msg.append("<t:Subject>" + this.getSubject() + "</t:Subject>");
         if (referenceId==null) msg.append("<t:Sensitivity>" + this.getSensitivity() + "</t:Sensitivity>");
-        if (this.getBody()!=null) msg.append("<t:Body BodyType=\"" + this.getBodyType() + "\">" + this.getBody() + "</t:Body>");
 
+      //Set body
+        if (getBody()!=null){
+            msg.append("<t:Body BodyType=\"" + getBodyType() + "\">");
+            msg.append(wrap(body));
+            msg.append("</t:Body>");
+        };
+
+
+      //Set properties for new email messages
         if (referenceId==null){
-            msg.append("<t:Importance>" + this.getImportance() + "</t:Importance>");
+            msg.append("<t:Importance>" + getImportance() + "</t:Importance>");
+            if (from!=null) msg.append("<t:Sender>" + from.toXML("t") + "</t:Sender>"); //<--Doesn't seem to work!
         }
         
         Mailbox[] ToRecipients = this.getToRecipients();
@@ -643,12 +684,16 @@ public class Email extends FolderItem {
             */
 
 
-            msg.append("<t:ReferenceItemId Id=\"" + this.referenceId + "\" ChangeKey=\"" + new Email(this.referenceId, conn).getChangeKey() + "\" />");
+            msg.append("<t:ReferenceItemId Id=\"" + referenceId + "\" ChangeKey=\"" + new Email(referenceId, conn).getChangeKey() + "\" />");
             /*
                <NewBodyContent/>
                <ReceivedBy/>
                <ReceivedRepresenting/>
              */
+        }
+
+        if (referenceId==null){
+            if (from!=null) msg.append("<t:From>" + from.toXML("t") + "</t:From>"); //<--Doesn't seem to work!
         }
         
         msg.append("</t:" + messageType + ">");

@@ -718,8 +718,15 @@ public class CalendarEvent extends FolderItem {
         ConversationId, UniqueBody
       */
 
-        if (getSubject()!=null) msg.append("<t:Subject>" + getSubject() + "</t:Subject>");
-        if (getBody()!=null) msg.append("<t:Body BodyType=\"" + bodyType + "\">" + getBody() + "</t:Body>");
+        if (getSubject()!=null) msg.append("<t:Subject>" + subject + "</t:Subject>");
+        
+      //Add body
+        if (getBody()!=null){
+            msg.append("<t:Body BodyType=\"" + getBodyType() + "\">");
+            msg.append(wrap(body));
+            msg.append("</t:Body>");
+        };
+        
 
       //Add categories
         if (!categories.isEmpty()){

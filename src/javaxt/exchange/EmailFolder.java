@@ -37,10 +37,10 @@ public class EmailFolder extends Folder {
   //**************************************************************************
   //** getMail
   //**************************************************************************
-  /** Returns an array of email messages found in this folder.
+  /** Returns a shallow representation of email messages found in this folder.
    *  @param limit Maximum number of items to return.
    *  @param offset Item offset. 0 implies no offset.
-   *  @param orderBy
+   *  @param orderBy. SQL-style order by clause (e.g. "item:DateTimeReceived DESC")
    */
     public Email[] getMail(int offset, int limit, String orderBy) throws ExchangeException {
         java.util.ArrayList<Email> messages = new java.util.ArrayList<Email>();
