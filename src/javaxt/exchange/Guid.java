@@ -32,7 +32,18 @@ public class Guid {
         return id;
     }
 
-    
+    public int hashCode(){
+        return id.hashCode();
+    }
+
+    public boolean equals(Object obj){
+        if (obj!=null){
+            if (obj instanceof String || obj instanceof Guid){
+                return obj.toString().equalsIgnoreCase(id);
+            }
+        }
+        return false;
+    }
 
     private String getRandomChars(int numChars){
         StringBuffer str = new StringBuffer();

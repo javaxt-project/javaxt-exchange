@@ -104,7 +104,7 @@ public class Contact extends FolderItem {
   //**************************************************************************
   /** Creates a new instance of this class
    */
-    public Contact(String exchangeID, Connection conn, ExtendedProperty[] AdditionalProperties) throws ExchangeException{
+    public Contact(String exchangeID, Connection conn, ExtendedFieldURI[] AdditionalProperties) throws ExchangeException{
         super(exchangeID, conn, AdditionalProperties);
         parseContact();
     }
@@ -1096,10 +1096,13 @@ public class Contact extends FolderItem {
 
 
       //Add extended properties
-        ExtendedProperty[] properties = this.getExtendedProperties();
+        java.util.HashMap<ExtendedFieldURI, javaxt.utils.Value> properties = this.getExtendedProperties();
         if (properties!=null){
-            for (ExtendedProperty property : properties){
-                msg.append(property.toXML("t", "create"));
+            java.util.Iterator<ExtendedFieldURI> it = properties.keySet().iterator();
+            while (it.hasNext()){
+                ExtendedFieldURI property = it.next();
+                javaxt.utils.Value value = properties.get(property);
+                msg.append(property.toXML("t", "create", value));
             }
         }
 

@@ -1,4 +1,5 @@
 package javaxt.exchange;
+import javaxt.utils.Value;
 
 //******************************************************************************
 //**  FolderItem Class
@@ -55,6 +56,7 @@ public class FolderItem {
 
     protected String id;
     protected String changeKey;
+    protected String itemClass;
     protected String parentFolderID;
     protected String subject;
     protected String body;
@@ -63,8 +65,8 @@ public class FolderItem {
     protected java.util.HashSet<String> categories = new java.util.HashSet<String>();
     protected java.util.HashSet<Attachment> attachments = new java.util.HashSet<Attachment>();
     protected javaxt.utils.Date lastModified;
-    protected java.util.HashMap<String, ExtendedProperty> extendedProperties =
-            new java.util.HashMap<String, ExtendedProperty>();
+    protected java.util.HashMap<ExtendedFieldURI, Value> extendedProperties =
+            new java.util.HashMap<ExtendedFieldURI, Value>();
 
     /** Hashmap with a list of any pending updates to be made to this item. */
     protected java.util.HashMap<String, Object> updates = new java.util.HashMap<String, Object>();
@@ -81,7 +83,7 @@ public class FolderItem {
   /** Creates a new instance of this class
    *  @param AdditionalProperties A list of attributes you wish to see
    */
-    protected FolderItem(String exchangeID, Connection conn, ExtendedProperty[] AdditionalProperties) throws ExchangeException{
+    protected FolderItem(String exchangeID, Connection conn, ExtendedFieldURI[] AdditionalProperties) throws ExchangeException{
 
         if (exchangeID==null) throw new ExchangeException("Exchange ID is required.");
         if (conn==null) throw new ExchangeException("Exchange Web Services Connection is required.");
@@ -104,7 +106,7 @@ public class FolderItem {
         str.append("<t:ExtendedFieldURI PropertyTag=\"0x3008\" PropertyType=\"SystemTime\" />"); //<--This returns the LastModifiedTime!
 
         if (AdditionalProperties!=null){            
-            for (ExtendedProperty property : AdditionalProperties){
+            for (ExtendedFieldURI property : AdditionalProperties){
 
                 String name = property.getName();
                 String type = property.getType();
@@ -175,9 +177,12 @@ public class FolderItem {
                     id = javaxt.xml.DOM.getAttributeValue(outerNode, "Id");
                     changeKey = javaxt.xml.DOM.getAttributeValue(outerNode, "ChangeKey");
                 }
-                if (nodeName.equalsIgnoreCase("ParentFolderId")){
+                else if(nodeName.equalsIgnoreCase("ParentFolderId")){
                     parentFolderID = javaxt.xml.DOM.getAttributeValue(outerNode, "Id");
                     //changeKey = javaxt.xml.DOM.getAttributeValue(outerNode, "ChangeKey");
+                }
+                else if(nodeName.equalsIgnoreCase("ItemClass")){
+                    itemClass = javaxt.xml.DOM.getNodeValue(outerNode);
                 }
                 else if(nodeName.equalsIgnoreCase("Subject")){
                     subject = javaxt.xml.DOM.getNodeValue(outerNode);
@@ -215,16 +220,15 @@ public class FolderItem {
                 }
                 else if (nodeName.equalsIgnoreCase("ExtendedProperty")){
 
-                    ExtendedProperty prop = new ExtendedProperty(outerNode);
+                    Object[] arr = ExtendedFieldURI.parse(outerNode);
+                    ExtendedFieldURI prop = (ExtendedFieldURI) arr[0];
+                    Value value = (Value) arr[1];
 
                     if (prop.getName().equalsIgnoreCase("0x3008")){
-                        try{
-                            lastModified = new javaxt.utils.Date(prop.getValue());
-                        }
-                        catch(java.text.ParseException e){}
+                        lastModified = value.toDate();
                     }
                     else{
-                        extendedProperties.put(prop.getName(), prop);
+                        extendedProperties.put(prop, value);
                     }
 
                 }
@@ -413,7 +417,7 @@ public class FolderItem {
       //Exchange. As a result, the body will always be updated when saving
       //or updating an item. To circumvent this, we convert the HTML fragment
       //into a full HTML document before comparing with the original body.
-        if (body!=null && !body.toLowerCase().contains("<html") && this.bodyType.equals("HTML")){
+        if (body!=null && !body.toLowerCase().contains("<html") && format.equals("HTML")){
             body = "<html>\n"+
             "<head>\n" +
             "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">\n" +
@@ -606,29 +610,42 @@ public class FolderItem {
         categories.clear();
     }
 
-    
-    public ExtendedProperty getExtendedProperty(String name){
-        return extendedProperties.get(name);
+
+  //**************************************************************************
+  //** getExtendedProperty
+  //**************************************************************************
+  /** Returns the value of an Extended Property.
+   *  @param name The name of the ExtendedFieldURI associated with the ExtendedProperty
+   */
+    public Value getExtendedProperty(String name){
+        java.util.Iterator<ExtendedFieldURI> it = extendedProperties.keySet().iterator();
+        while (it.hasNext()){
+            ExtendedFieldURI key = it.next();
+            if (key.getName().equalsIgnoreCase(name))
+                return extendedProperties.get(key);
+        }
+        return null;
     }
 
 
   //**************************************************************************
   //** getExtendedProperties
   //**************************************************************************
-  /** Returns an array of ExtendedProperties associated with this item.
+  /** Returns a hashamp of ExtendedProperties associated with this item, or
+   *  null if there are no ExtendedProperties.
    */
-    public ExtendedProperty[] getExtendedProperties(){
+    public java.util.HashMap<ExtendedFieldURI, Value> getExtendedProperties(){
 
-      //Only include non-null values in the array
-        java.util.ArrayList<ExtendedProperty> arr = new java.util.ArrayList<ExtendedProperty>();
-        java.util.Iterator<String> it = extendedProperties.keySet().iterator();
+      //Returns a hashmap with non-null values
+        java.util.HashMap<ExtendedFieldURI, Value> props = new java.util.HashMap<ExtendedFieldURI, Value>();
+        java.util.Iterator<ExtendedFieldURI> it = extendedProperties.keySet().iterator();
         while (it.hasNext()){
-            String key = it.next();
-            ExtendedProperty val = extendedProperties.get(key);
-            if (val!=null) arr.add(val);
+            ExtendedFieldURI key = it.next();
+            Value val = extendedProperties.get(key);
+            if (val!=null) props.put(key, val);
         }
-        if (arr.isEmpty()) return null;
-        else return arr.toArray(new ExtendedProperty[arr.size()]);
+        if (props.isEmpty()) return null;
+        else return props;
     }
 
 
@@ -636,10 +653,10 @@ public class FolderItem {
   //** setExtendedProperties
   //**************************************************************************
   /** Bulk update of the ExtendedProperties associated with this item.
-   */
-    public void setExtendedProperties(ExtendedProperty[] extendedProperties) {
+   *
+    public void setExtendedProperties(java.util.HashMap<ExtendedProperty, String> extendedProperties) {
 
-        if (extendedProperties==null || extendedProperties.length==0){
+        if (extendedProperties==null || extendedProperties.isEmpty()){
             removeExtendedProperties();
             return;
         }
@@ -647,12 +664,14 @@ public class FolderItem {
       //See whether any updates are required
         int numMatches = 0;
         int total = 0;
-        for (ExtendedProperty property : extendedProperties){
+        java.util.Iterator<ExtendedProperty> it = extendedProperties.keySet().iterator();
+        while (it.hasNext()){
+            ExtendedProperty property = it.next();
+            String value = extendedProperties.get(property);
             if (property!=null){
                 total++;
-                String name = property.getName();
-                if (this.extendedProperties.containsKey(name)){
-                    if (this.extendedProperties.get(name).equals(property)) numMatches++;
+                if (this.extendedProperties.containsKey(property)){
+                    if (this.extendedProperties.get(property).equals(value)) numMatches++;
                 }
             }
         }
@@ -671,41 +690,28 @@ public class FolderItem {
             }
         }
     }
-
+*/
 
   //**************************************************************************
   //** setExtendedProperty
   //**************************************************************************
   /** Used to add or update an ExtendedProperty associated with this item.
    */
-    public void setExtendedProperty(ExtendedProperty property){
+    public void setExtendedProperty(ExtendedFieldURI property, Object value){
+
+        Value val = new Value(value);
 
       //Check whether this is a new property
         boolean update = false;
-        if (extendedProperties.containsKey(property.getName())){
-            java.util.Iterator<String> it = extendedProperties.keySet().iterator();
-            while (it.hasNext()){
-                String key = it.next();
-                if (key.equals(property.getName())){
-                    String value = null;
-                    if (extendedProperties.get(key).getValue()!=null){
-                        value = extendedProperties.get(key).getValue();
-                    }
-
-                    if (value==null || !value.equals(property.getValue())){
-                        update = true;
-                    }
-                    break;
-                }
-            }
+        if (extendedProperties.containsKey(property)){
+            update = !val.equals(extendedProperties.get(property));
         }
         else{
             update = true;
         }
 
-
         if (update){
-            extendedProperties.put(property.getName(), property);
+            extendedProperties.put(property, val);
             if (id!=null) updates.put("ExtendedProperties", getExtendedPropertyUpdates());
         }
     }
@@ -716,15 +722,12 @@ public class FolderItem {
   //**************************************************************************
   /** Used to remove a specific ExtendedProperty associated with this item.
    */
-    public void removeExtendedProperty(ExtendedProperty property){
+    public void removeExtendedProperty(ExtendedFieldURI property){
 
-        String name = property.getName();
-        if (extendedProperties.containsKey(name)){
-            if (id==null) extendedProperties.remove(name);
+        if (extendedProperties.containsKey(property)){
+            if (id==null) extendedProperties.remove(property);
             else{
-                property = extendedProperties.get(name);
-                property.setValue(null);
-                extendedProperties.put(name, property);
+                extendedProperties.put(property, null);
             }
 
             if (id!=null) updates.put("ExtendedProperties", getExtendedPropertyUpdates());
@@ -738,10 +741,11 @@ public class FolderItem {
   /** Removes all ExtendedProperties associated with this item.
    */
     public void removeExtendedProperties(){
-        ExtendedProperty[] extendedProperties = getExtendedProperties();
+        java.util.HashMap<ExtendedFieldURI, Value> extendedProperties = getExtendedProperties();
         if (extendedProperties!=null){
-            for (ExtendedProperty property : extendedProperties){
-                removeExtendedProperty(property);
+            java.util.Iterator<ExtendedFieldURI> it = extendedProperties.keySet().iterator();
+            while (it.hasNext()){
+                removeExtendedProperty(it.next());
             }
         }
     }
@@ -759,19 +763,19 @@ public class FolderItem {
         else{
             StringBuffer xml = new StringBuffer();
 
-            java.util.Iterator<String> it = extendedProperties.keySet().iterator();
+            java.util.Iterator<ExtendedFieldURI> it = extendedProperties.keySet().iterator();
             while (it.hasNext()){
                 
-                ExtendedProperty property = extendedProperties.get(it.next());
-                String value = property.getValue();
+                ExtendedFieldURI property = it.next();
+                Value value = extendedProperties.get(property);
 
                 if (value==null){
                     if (id!=null){
-                        xml.append(property.toXML("t", "delete"));
+                        xml.append(property.toXML("t", "delete", value));
                     }
                 }
                 else{
-                    xml.append(property.toXML("t", "update"));
+                    xml.append(property.toXML("t", "update", value));
                 }
 
             }
@@ -960,8 +964,7 @@ System.out.println(msg + "\r\n");
         if (val!=null){
             val = val.trim();
             if (val.length()==0) val = null;
-
-            if (val.trim().startsWith("<![CDATA[")){
+            else if (val.startsWith("<![CDATA[")){
                 System.out.println(val);
                 val = val.substring(val.indexOf("<![CDATA[") + 9, val.lastIndexOf("]]>"));
                 System.out.println(val);
@@ -1082,14 +1085,13 @@ System.out.println(msg + "\r\n");
 
     private static final java.util.HashMap<String, java.util.HashSet<String>> namespaces = getNameSpaces();
     private static final java.util.HashMap<String, java.util.HashSet<String>> getNameSpaces(){
-        String fieldURIs = "calendar:AdjacentMeetingCount,calendar:AdjacentMeetings,calendar:AllowNewTimeProposal,calendar:AppointmentReplyTime,calendar:AppointmentSequenceNumber,calendar:AppointmentState,calendar:CalendarItemType,calendar:ConferenceType,calendar:ConflictingMeetingCount,calendar:ConflictingMeetings,calendar:DateTimeStamp,calendar:DeletedOccurrences,calendar:Duration,calendar:End,calendar:EndTimeZone,calendar:FirstOccurrence,calendar:IsAllDayEvent,calendar:IsCancelled,calendar:IsMeeting,calendar:IsOnlineMeeting,calendar:IsRecurring,calendar:IsResponseRequested,calendar:LastOccurrence,calendar:LegacyFreeBusyStatus,calendar:Location,calendar:MeetingRequestWasSent,calendar:MeetingTimeZone,calendar:MeetingWorkspaceUrl,calendar:ModifiedOccurrences,calendar:MyResponseType,calendar:NetShowUrl,calendar:OptionalAttendees,calendar:Organizer,calendar:OriginalStart,calendar:Recurrence,calendar:RecurrenceId,calendar:RequiredAttendees,calendar:Resources,calendar:Start,calendar:StartTimeZone,calendar:TimeZone,calendar:UID,calendar:When,contacts:Alias,contacts:AssistantName,contacts:Birthday,contacts:BusinessHomePage,contacts:Children,contacts:Companies,contacts:CompanyName,contacts:CompleteName,contacts:ContactSource,contacts:Culture,contacts:Department,contacts:DirectoryId,contacts:DirectReports,contacts:DisplayName,contacts:EmailAddresses,contacts:FileAs,contacts:FileAsMapping,contacts:Generation,contacts:GivenName,contacts:HasPicture,contacts:HasPicture,contacts:ImAddresses,contacts:Initials,contacts:JobTitle,contacts:Manager,contacts:ManagerMailbox,contacts:MiddleName,contacts:Mileage,contacts:MSExchangeCertificate,contacts:Nickname,contacts:Notes,contacts:OfficeLocation,contacts:PhoneNumbers,contacts:PhoneticFirstName,contacts:PhoneticFullName,contacts:PhoneticLastName,contacts:Photo,contacts:PhysicalAddresses,contacts:PostalAddressIndex,contacts:Profession,contacts:SpouseName,contacts:Surname,contacts:UserSMIMECertificate,contacts:WeddingAnniversary,conversation:Categories,conversation:ConversationId,conversation:ConversationTopic,conversation:FlagStatus,conversation:GlobalCategories,conversation:GlobalFlagStatus,conversation:GlobalHasAttachments,conversation:GlobalImportance,conversation:GlobalItemClasses,conversation:GlobalItemIds,conversation:GlobalLastDeliveryTime,conversation:GlobalMessageCount,conversation:GlobalSize,conversation:GlobalUniqueRecipients,conversation:GlobalUniqueSenders,conversation:GlobalUniqueUnreadSenders,conversation:GlobalUnreadCount,conversation:HasAttachments,conversation:Importance,conversation:ItemClasses,conversation:ItemIds,conversation:LastDeliveryTime,conversation:MessageCount,conversation:Size,conversation:UniqueRecipients,conversation:UniqueSenders,conversation:UniqueUnreadSenders,conversation:UnreadCount,distributionlist:Members,folder:ChildFolderCount,folder:DisplayName,folder:EffectiveRights,folder:FolderClass,folder:FolderId,folder:ManagedFolderInformation,folder:ParentFolderId,folder:PermissionSet,folder:SearchParameters,folder:SharingEffectiveRights,folder:TotalCount,folder:UnreadCount,item:Attachments,item:Body,item:Categories,item:ConversationId,item:Culture,item:DateTimeCreated,item:DateTimeReceived,item:DateTimeSent,item:DisplayCc,item:DisplayTo,item:EffectiveRights,item:HasAttachments,item:Importance,item:InReplyTo,item:InternetMessageHeaders,item:IsAssociated,item:IsDraft,item:IsFromMe,item:IsResend,item:IsSubmitted,item:IsUnmodified,item:ItemClass,item:ItemId,item:LastModifiedName,item:LastModifiedTime,item:MimeContent,item:ParentFolderId,item:ReminderDueBy,item:ReminderIsSet,item:ReminderMinutesBeforeStart,item:ResponseObjects,item:Sensitivity,item:Size,item:Subject,item:UniqueBody,item:WebClientEditFormQueryString,item:WebClientReadFormQueryString,meeting:AssociatedCalendarItemId,meeting:HasBeenProcessed,meeting:IsDelegated,meeting:IsOutOfDate,meeting:ResponseType,meetingRequest:IntendedFreeBusyStatus,meetingRequest:MeetingRequestType,message:BccRecipients,message:CcRecipients,message:ConversationIndex,message:ConversationTopic,message:From,message:InternetMessageId,message:IsDeliveryReceiptRequested,message:IsRead,message:IsReadReceiptRequested,message:IsResponseRequested,message:References,message:ReplyTo,message:Sender,message:ToRecipients,postitem:PostedTime,task:ActualWork,task:AssignedTime,task:BillingInformation,task:ChangeCount,task:Companies,task:CompleteDate,task:Contacts,task:DelegationState,task:Delegator,task:DueDate,task:IsAssignmentEditable,task:IsComplete,task:IsRecurring,task:IsTeamTask,task:Mileage,task:Owner,task:PercentComplete,task:Recurrence,task:StartDate,task:Status,task:StatusDescription,task:TotalWork";
 
         java.util.HashMap<String, java.util.HashSet<String>> namespaces = new java.util.HashMap<String, java.util.HashSet<String>>();
         java.util.HashSet<String> uniqueKeys = new java.util.HashSet<String>();
         java.util.HashSet<String> duplicateKeys = new java.util.HashSet<String>();
 
 
-        for (String row : fieldURIs.split(",")){
+        for (String row : FieldURI.getFieldURIs()){
             String[] col = row.split(":");
             if (col.length>1){
                 String key = col[0];

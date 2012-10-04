@@ -38,6 +38,9 @@ public class Connection {
     }
 
 
+  //**************************************************************************
+  //** createRequest
+  //**************************************************************************
     protected javaxt.http.Request createRequest(){
         javaxt.http.Request request = new javaxt.http.Request(ews);
         request.validateSSLCertificates(true);
@@ -49,6 +52,9 @@ public class Connection {
     }
 
 
+  //**************************************************************************
+  //** getResponse
+  //**************************************************************************
     protected Object getResponse(javaxt.http.Request request, boolean parseResponse) throws ExchangeException {
         javaxt.http.Response response = request.getResponse();
         int status = response.getStatus();

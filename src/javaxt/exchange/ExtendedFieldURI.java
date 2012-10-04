@@ -1,33 +1,31 @@
 package javaxt.exchange;
 
 //******************************************************************************
-//**  ExtendedProperty Class
+//**  ExtendedFieldURI
 //******************************************************************************
 /**
- *   Used to represent a custom, extended property associated with a folder
- *   item.
+ *   Used to represent an ExtendedFieldURI.
  *
  ******************************************************************************/
 
-public class ExtendedProperty {
+public class ExtendedFieldURI extends FieldURI {
 
     private String id;
     private String name;
     private String type = "String";
-    private String value;
-
 
   //**************************************************************************
   //** Constructor
   //**************************************************************************
   /** Creates a new instance of this class.
-   *  @param id A unique id in the form of a Microsoft GUID
+   *  @param id A unique id in the form of a Microsoft GUID.
+   *  @param name Property name.
+   *  @param name Property type (e.g. "String").
    */
-    public ExtendedProperty(String id, String name, String type, String value){
+    public ExtendedFieldURI(String id, String name, String type){
         this.id = id;
         this.name = name;
         this.type = type;
-        this.value = value;
     }
 
 
@@ -37,7 +35,12 @@ public class ExtendedProperty {
   /** Creates a new instance of this class.
    *  @param node "ExtendedProperty" node
    */
-    public ExtendedProperty(org.w3c.dom.Node node){
+    protected static Object[] parse(org.w3c.dom.Node node){
+
+        String id = null;
+        String name = null;
+        String type = null;
+        String value = null;
 
         org.w3c.dom.NodeList childNodes = node.getChildNodes();
         for (int j=0; j<childNodes.getLength(); j++){
@@ -60,27 +63,42 @@ public class ExtendedProperty {
                 }
             }
         }
+
+      //TODO: Convert the value to a proper type before instantiating the Value class
+        javaxt.utils.Value val = new javaxt.utils.Value(value);
+        
+
+        return new Object[]{new ExtendedFieldURI(id, name, type), val};
     }
 
-  /** Returns the guid associated with this property. */
+
+  //**************************************************************************
+  //** getID
+  //**************************************************************************
+  /** Returns the guid associated with this property.
+   */
     public String getID(){
         return id;
     }
 
+
+  //**************************************************************************
+  //** getName
+  //**************************************************************************
+  /** Returns the name of this property.
+   */
     public String getName(){
         return name;
     }
 
+
+  //**************************************************************************
+  //** getType
+  //**************************************************************************
+  /** Returns the type of property (e.g. "String").
+   */
     public String getType(){
         return type;
-    }
-
-    public String getValue(){
-        return value;
-    }
-
-    public void setValue(String value){
-        this.value = value;
     }
 
 
@@ -97,9 +115,10 @@ public class ExtendedProperty {
    *  Use a null value is you do not wish to append a namespace.
    *
    *  @param operation String used to specify whether to return an xml
-   *  formatted for inserts, updates or deletes. Valid
+   *  formatted for inserts, updates or deletes. Valid options include
+   *  "create", "update", "delete".
    */
-    protected String toXML(String namespace, String operation){
+    protected String toXML(String namespace, String operation, javaxt.utils.Value value){
 
       //Update namespace prefix
         if (namespace!=null){
@@ -137,24 +156,29 @@ public class ExtendedProperty {
     }
 
     
-    public String toString(){
-        return name + ": " + value;
+    protected String toXML(String namespace){
+        String idAttr = (id==null ? "" : "PropertySetId=\"" + id + "\"");
+        String nameAttr = (name.startsWith("0x") ? "PropertyTag=\"" + name + "\"" : "PropertyName=\"" + name + "\"");
+        String typeAttr = "PropertyType=\"" + type + "\"";
+        return "<" + namespace + ":ExtendedFieldURI " + nameAttr + " " + idAttr + " " + typeAttr + "/>";
     }
 
-    public int hashCode(){
-        return name.toUpperCase().hashCode();
+    
+    public String toString(){
+        return name;
+    }
+
+    public int hashCode(){ 
+        return name.startsWith("0x") ? name.hashCode() : id.toUpperCase().hashCode();
     }
 
     public boolean equals(Object obj){
-        if (obj instanceof ExtendedProperty){
-            ExtendedProperty property = (ExtendedProperty) obj;
-            return (property.id.equalsIgnoreCase(this.id) && property.value.equals(this.value));
+        if (obj!=null){
+            if (obj instanceof ExtendedFieldURI){
+                ExtendedFieldURI property = (ExtendedFieldURI) obj;
+                return (property.id.equalsIgnoreCase(this.id));
+            }
         }
         return false;
-    }
-
-  /** Creates a copy of this object. */
-    public ExtendedProperty clone(){
-        return new ExtendedProperty(id, name, type, value);
     }
 }

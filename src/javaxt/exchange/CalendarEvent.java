@@ -84,7 +84,7 @@ public class CalendarEvent extends FolderItem {
   //**************************************************************************
   /** Creates a new instance of this class with an id
    */
-    public CalendarEvent(String exchangeID, Connection conn, ExtendedProperty[] AdditionalProperties) throws ExchangeException{
+    public CalendarEvent(String exchangeID, Connection conn, ExtendedFieldURI[] AdditionalProperties) throws ExchangeException{
         super(exchangeID, conn, AdditionalProperties);
         parseCalendarItem();
     }
@@ -745,10 +745,13 @@ public class CalendarEvent extends FolderItem {
 
 
       //Add extended properties
-        ExtendedProperty[] properties = this.getExtendedProperties();
+        java.util.HashMap<ExtendedFieldURI, javaxt.utils.Value> properties = this.getExtendedProperties();
         if (properties!=null){
-            for (ExtendedProperty property : properties){
-                msg.append(property.toXML("t", "create"));
+            java.util.Iterator<ExtendedFieldURI> it = properties.keySet().iterator();
+            while (it.hasNext()){
+                ExtendedFieldURI property = it.next();
+                javaxt.utils.Value value = properties.get(property);
+                msg.append(property.toXML("t", "create", value));
             }
         }
 

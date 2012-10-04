@@ -1,9 +1,16 @@
 package javaxt.exchange;
 
+//******************************************************************************
+//**  EmailFolder Class
+//******************************************************************************
+/**
+ *   Used to represent an mail folder (e.g. "Inbox", "Sent Items", etc.).
+ *
+ ******************************************************************************/
+
 public class EmailFolder extends Folder {
 
-    private Connection conn;
-    private java.util.ArrayList<String> props = new java.util.ArrayList<String>();
+    private java.util.HashSet<FieldURI> props = new java.util.HashSet<FieldURI>();
 
 
   //**************************************************************************
@@ -15,8 +22,20 @@ public class EmailFolder extends Folder {
    */
     public EmailFolder(String folderName, Connection conn) throws ExchangeException {
         super(folderName, conn);
-        props.add("item:Importance");
-        this.conn = conn;
+        props.add(new FieldURI("item:Importance"));
+        props.add(new FieldURI("item:DateTimeReceived"));
+        props.add(new FieldURI("item:IsDraft"));
+
+
+      //Add the PR_LAST_VERB_EXECUTED (0x10810003) extended MAPI property. This
+      //property represents the last action performed on individual mail items.
+      //Possible values include 102 (replied), 103 (reply all), and 104 (forwarded).
+        props.add(new ExtendedFieldURI(null, "0x1081", "Integer"));
+        
+      //Add the PR_LAST_VERB_EXECUTION_TIME (0x10820040) extended MAPI property.
+      //This property represents the date/time associated with the last action
+      //performed on individual mail items.
+        props.add(new ExtendedFieldURI(null, "0x1082", "SystemTime"));
     }
 
 
@@ -35,14 +54,32 @@ public class EmailFolder extends Folder {
 
 
   //**************************************************************************
-  //** getMail
+  //** getMessages
   //**************************************************************************
   /** Returns a shallow representation of email messages found in this folder.
-   *  @param limit Maximum number of items to return.
+   *
    *  @param offset Item offset. 0 implies no offset.
-   *  @param orderBy. SQL-style order by clause (e.g. "item:DateTimeReceived DESC")
+   *
+   *  @param limit Maximum number of items to return.
+   *
+   *  @param additionalProperties By default, this method returns a shallow
+   *  representation messages found in this folder. You can retrieve additional
+   *  attributes by providing an array of FieldURI (including ExtendedFieldURIs).
+   *  This parameter is optional. A null value will return no additional or
+   *  extended attributes.
+   *
+   *  @param orderBy. SQL-style order by clause used to sort the response 
+   *  (e.g. "item:DateTimeReceived DESC"). This parameter is optional. A null
+   *  value implies no sort preference.
    */
-    public Email[] getMail(int offset, int limit, String orderBy) throws ExchangeException {
+    public Email[] getMessages(int offset, int limit, FieldURI[] additionalProperties, String orderBy) throws ExchangeException {
+
+      //Merge additional properties
+        java.util.HashSet<FieldURI> props = getDefaultProperties();
+        if (additionalProperties!=null){
+            for (FieldURI property : additionalProperties) props.add(property);
+        }
+
         java.util.ArrayList<Email> messages = new java.util.ArrayList<Email>();
         org.w3c.dom.NodeList nodes = getItems(offset, limit, props, orderBy).getElementsByTagName("t:Message");
         for (int i=0; i<nodes.getLength(); i++){
@@ -55,12 +92,9 @@ public class EmailFolder extends Folder {
     }
 
 
-  //**************************************************************************
-  //** getMail
-  //**************************************************************************
-  /** Returns an email message associated with the given exchangeID
-   */
-    public Email getMail(String exchangeID) throws ExchangeException {
-        return new Email(exchangeID, conn);
+    private java.util.HashSet<FieldURI> getDefaultProperties(){
+        java.util.HashSet<FieldURI> map = new java.util.HashSet<FieldURI>();
+        map.addAll(props);
+        return map;
     }
 }

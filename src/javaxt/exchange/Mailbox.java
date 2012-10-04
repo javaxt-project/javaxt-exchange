@@ -69,6 +69,22 @@ public class Mailbox {
 
 
   //**************************************************************************
+  //** getEmailAddress
+  //**************************************************************************
+    public EmailAddress getEmailAddress(){
+        return EmailAddress;
+    }
+
+
+  //**************************************************************************
+  //** getName
+  //**************************************************************************
+    public String getName(){
+        return Name;
+    }
+
+
+  //**************************************************************************
   //** toXML
   //**************************************************************************
   /** Returns an xml fragment used to save or update a mail item via Exchange
@@ -104,9 +120,6 @@ public class Mailbox {
     }
 
 
-    public EmailAddress getEmailAddress(){
-        return EmailAddress;
-    }
 
 
     public String toString(){

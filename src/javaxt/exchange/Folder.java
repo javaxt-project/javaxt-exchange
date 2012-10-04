@@ -375,7 +375,7 @@ public class Folder {
    *  @param offset Item offset. 0 implies no offset.
    *  @param limit Maximum number of items to return.
    */
-    protected org.w3c.dom.Document getItems(int offset, int limit, java.util.ArrayList<String> additionalProperties, String orderBy) throws ExchangeException {
+    protected org.w3c.dom.Document getItems(int offset, int limit, java.util.HashSet<FieldURI> additionalProperties, String orderBy) throws ExchangeException {
         if (offset<1) offset = 0;
         if (limit<1) limit = 1;
         return getItems("<m:IndexedPageItemView MaxEntriesReturned=\"" + limit + "\" Offset=\"" + offset + "\" BasePoint=\"Beginning\"/>",
@@ -400,8 +400,10 @@ public class Folder {
    *  @param orderBy SQL-style order by clause used to sort the results
    *  (e.g. "item:DateTimeReceived DESC").
    */
-    protected org.w3c.dom.Document getItems(String view, java.util.ArrayList<String> additionalProperties, String orderBy) throws ExchangeException {
+    protected org.w3c.dom.Document getItems(String view, java.util.HashSet<FieldURI> additionalProperties, String orderBy) throws ExchangeException {
 
+        
+      //Parse order by statement
         String sort = "";
         if (orderBy!=null){
 
@@ -450,12 +452,18 @@ public class Folder {
             }
         }
 
+      //Pa
         StringBuffer props = new StringBuffer();
         if (additionalProperties!=null){
-            for (String prop : additionalProperties){
-                props.append("<t:FieldURI FieldURI=\"" + prop + "\"/>");
+            java.util.Iterator<FieldURI> it = additionalProperties.iterator();
+            while (it.hasNext()){
+                FieldURI prop = it.next();
+                if (prop!=null){
+                    props.append(prop.toXML("t")); //("<t:FieldURI FieldURI=\"" + prop + "\"/>");
+                }
             }
         }
+System.out.println(props);
 
         String msg =
         "<?xml version=\"1.0\" encoding=\"utf-8\"?>"

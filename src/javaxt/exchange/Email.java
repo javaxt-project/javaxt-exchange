@@ -12,13 +12,20 @@ package javaxt.exchange;
 public class Email extends FolderItem {
 
     private Mailbox from;
+    private java.util.HashSet<Mailbox> ToRecipients = new java.util.HashSet<Mailbox>();
+    private java.util.HashSet<Mailbox> CcRecipients = new java.util.HashSet<Mailbox>();
+    private java.util.HashSet<Mailbox> BccRecipients = new java.util.HashSet<Mailbox>();
+
     private String importance = "Normal";
     private String sensitivity = "Normal";
     private Integer size;
     private boolean isRead = false;
-    private java.util.HashSet<Mailbox> ToRecipients = new java.util.HashSet<Mailbox>();
-    private java.util.HashSet<Mailbox> CcRecipients = new java.util.HashSet<Mailbox>();
-    private java.util.HashSet<Mailbox> BccRecipients = new java.util.HashSet<Mailbox>();
+    private javaxt.utils.Date sent;
+    private javaxt.utils.Date received;
+    private String response;
+    private javaxt.utils.Date responseDate;
+
+  //The following parameters are for internal use only!
     private String referenceId;
     private String messageType = "Message";
 
@@ -59,13 +66,17 @@ public class Email extends FolderItem {
 
       //Email specific information
         this.from = message.from;
+        this.ToRecipients = message.ToRecipients;
+        this.CcRecipients = message.CcRecipients;
+        this.BccRecipients = message.BccRecipients;
         this.importance = message.importance;
         this.sensitivity = message.sensitivity;
         this.size = message.size;
         this.isRead = message.isRead;
-        this.ToRecipients = message.ToRecipients;
-        this.CcRecipients = message.CcRecipients;
-        this.BccRecipients = message.BccRecipients;
+        this.sent = message.sent;
+        this.received = message.received;
+        this.response = message.response;
+        this.responseDate = message.responseDate;
         this.referenceId = message.referenceId;
         this.messageType = message.messageType;
     }
@@ -88,7 +99,7 @@ public class Email extends FolderItem {
   //**************************************************************************
   /** Creates a new instance of this class
    */
-    public Email(String exchangeID, Connection conn, ExtendedProperty[] AdditionalProperties) throws ExchangeException{
+    public Email(String exchangeID, Connection conn, ExtendedFieldURI[] AdditionalProperties) throws ExchangeException{
         super(exchangeID, conn, AdditionalProperties);
         parseMessage();
     }
@@ -110,6 +121,9 @@ public class Email extends FolderItem {
   /** Used to parse an xml node with email information.
    */
     private void parseMessage(){
+
+        boolean isDraft = false;
+
         org.w3c.dom.NodeList outerNodes = this.getChildNodes();
         for (int i=0; i<outerNodes.getLength(); i++){
             org.w3c.dom.Node outerNode = outerNodes.item(i);
@@ -169,6 +183,51 @@ public class Email extends FolderItem {
                 else if(nodeName.equalsIgnoreCase("IsRead")){
                     isRead = javaxt.xml.DOM.getNodeValue(outerNode).equalsIgnoreCase("true");
                 }
+                else if(nodeName.equalsIgnoreCase("IsDraft")){
+                    isDraft = javaxt.xml.DOM.getNodeValue(outerNode).equalsIgnoreCase("true");
+                }
+                else if(nodeName.equalsIgnoreCase("DateTimeSent")){
+                    try{
+                        sent = new javaxt.utils.Date(javaxt.xml.DOM.getNodeValue(outerNode));
+                    }
+                    catch(java.text.ParseException e){}
+                }
+                else if(nodeName.equalsIgnoreCase("DateTimeReceived")){
+                    try{
+                        received = new javaxt.utils.Date(javaxt.xml.DOM.getNodeValue(outerNode));
+                    }
+                    catch(java.text.ParseException e){}
+                }
+            }
+        }
+
+      //Update the sent and received timestamps as needed
+        if (isDraft) sent = received = null;
+
+
+      //Find the PR_LAST_VERB_EXECUTED (0x10810003) extended MAPI property
+        java.util.Iterator<ExtendedFieldURI> it = extendedProperties.keySet().iterator();
+        while(it.hasNext()){
+            ExtendedFieldURI property = it.next();
+            if (property.getName().equalsIgnoreCase("0x1081")){
+                Integer value = extendedProperties.get(property).toInteger();
+                if (value==102) this.response = "Reply";
+                else if(value == 103) this.response = "ReplyAll";
+                else if(value == 104) this.response = "Forward";
+                extendedProperties.remove(property);
+                break;
+            }
+        }
+
+        
+      //Find the PR_LAST_VERB_EXECUTION_TIME (0x10820040) extended MAPI property
+        it = extendedProperties.keySet().iterator();
+        while(it.hasNext()){
+            ExtendedFieldURI property = it.next();
+            if (property.getName().equalsIgnoreCase("0x1082")){
+                responseDate = extendedProperties.get(property).toDate();
+                extendedProperties.remove(property);
+                break;
             }
         }
     }
@@ -304,19 +363,25 @@ public class Email extends FolderItem {
 
 
   //**************************************************************************
-  //** setFrom
+  //** getDateTimeReceived
   //**************************************************************************
-  /** Used to set the sender.
-   *
-    public void setFrom(Mailbox from){
-
-        if (id!=null) {
-            if (from==null && this.from!=null) updates.put("From", null);
-            if (from!=null && !from.equals(this.from)) updates.put("From", from.toXML("t"));
-        }
-        this.from = from;
+  /** Returns the date/time when the message was received. Returns a null if
+   *  the message is a draft.
+   */
+    public javaxt.utils.Date getDateTimeReceived(){
+        return received;
     }
-    */
+
+
+  //**************************************************************************
+  //** getDateTimeSent
+  //**************************************************************************
+  /** Returns the date/time when the message was sent. Returns a null if
+   *  the message has not been sent (e.g. Draft message).
+   */
+    public javaxt.utils.Date getDateTimeSent(){
+        return sent;
+    }
 
 
   //**************************************************************************
@@ -326,6 +391,30 @@ public class Email extends FolderItem {
    */
     public Integer getSize(){
         return size;
+    }
+
+
+  //**************************************************************************
+  //** getResponse
+  //**************************************************************************
+  /** Returns the last action performed on this message. Possible values
+   *  include "Forward", "Reply", "ReplyAll", or null.
+   */
+    public String getResponse(){
+        return response;
+    }
+
+
+  //**************************************************************************
+  //** getResponseDate
+  //**************************************************************************
+  /** Returns the date/time associated with the last action performed on this
+   *  message. This, in conjunction with the getResponse() method can be used
+   *  to generate messages like "You replied on 12/13/2012 5:38 PM." or
+   *  "You forwarded this message on 12/13/2012 6:01 PM."
+   */
+    public javaxt.utils.Date getResponseDate(){
+        return responseDate;
     }
 
 

@@ -5,18 +5,22 @@ import java.util.regex.Pattern;
 //**  EmailAddress Class
 //******************************************************************************
 /**
- *   Used to represent an email address. Includes email validation from mkyong:
- *   http://www.mkyong.com/regular-expressions/how-to-validate-email-address-with-regular-expression/
+ *   Used to represent an email address. 
  *
  ******************************************************************************/
 
 public class EmailAddress {
 
-    private String emailAddress;
+
+  /** Email validation from mkyong:
+   *  http://www.mkyong.com/regular-expressions/how-to-validate-email-address-with-regular-expression/
+   */
     private static final Pattern pattern = Pattern.compile(
   //"^[_A-Za-z0-9-]+(\\.[_A-Za-z0-9-]+)*@[A-Za-z0-9]+(\\.[A-Za-z0-9]+)*(\\.[A-Za-z]{2,})$"
     "^[_A-Za-z0-9-+]+(\\.[_A-Za-z0-9-+]+)*@[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*(\\.[A-Za-z]{2,})$"
     );
+
+    private String emailAddress;
 
   //**************************************************************************
   //** Constructor
@@ -50,7 +54,7 @@ public class EmailAddress {
 
     
     public int hashCode(){
-        return emailAddress.toLowerCase().hashCode();
+        return emailAddress.hashCode();
     }
 
   //**************************************************************************

@@ -10,7 +10,7 @@ package javaxt.exchange;
 
 public class CalendarFolder extends Folder {
 
-    private java.util.ArrayList<String> props = new java.util.ArrayList<String>();
+    private java.util.HashSet<FieldURI> props = new java.util.HashSet<FieldURI>();
 
   //**************************************************************************
   //** Constructor
@@ -19,7 +19,7 @@ public class CalendarFolder extends Folder {
 
     public CalendarFolder(Connection conn) throws ExchangeException {
         super("calendar", conn);
-        props.add("calendar:TimeZone");
+        props.add(new FieldURI("calendar:TimeZone"));
     }
 
     /*
