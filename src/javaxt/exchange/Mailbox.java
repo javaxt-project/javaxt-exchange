@@ -71,14 +71,29 @@ public class Mailbox {
   //**************************************************************************
   //** getEmailAddress
   //**************************************************************************
+  /** Returns the EmailAddress associated with this Mailbox, or null if the
+   *  EmailAddress is undefined.
+   */
     public EmailAddress getEmailAddress(){
         return EmailAddress;
     }
 
+
+  //**************************************************************************
+  //** setEmailAddress
+  //**************************************************************************
+  /** Used to set/update the EmailAddress associated with this Mailbox.
+   */
     public void setEmailAddress(EmailAddress emailAddress){
         this.EmailAddress = emailAddress;
     }
 
+
+  //**************************************************************************
+  //** setEmailAddress
+  //**************************************************************************
+  /** Used to set/update the EmailAddress associated with this Mailbox.
+   */
     public void setEmailAddress(String emailAddress) throws ExchangeException {
         setEmailAddress(new EmailAddress(emailAddress));
     }
@@ -108,6 +123,8 @@ public class Mailbox {
   //**************************************************************************
   //** getName
   //**************************************************************************
+  /** Returns the display name associated with this Mailbox (e.g. "John Smith").
+   */
     public String getName(){
         return Name;
     }
@@ -149,8 +166,12 @@ public class Mailbox {
     }
 
 
-
-
+  //**************************************************************************
+  //** toString
+  //**************************************************************************
+  /** Returns a string representation of this Mailbox (e.g.
+   *  "John Smith &lt;jsmith@acme.com&gt;").
+   */
     public String toString(){
         if (Name!=null && EmailAddress!=null) return Name + " <" + EmailAddress + ">";
         if (EmailAddress!=null) return EmailAddress.toString();
@@ -159,6 +180,12 @@ public class Mailbox {
     }
 
 
+  //**************************************************************************
+  //** equals
+  //**************************************************************************
+  /** Used to compare this Mailbox to another. Returns true if the hashcodes
+   *  match.
+   */
     public boolean equals(Object obj){
         if (obj!=null){
             if (obj instanceof Mailbox){
@@ -168,14 +195,25 @@ public class Mailbox {
         return false;
     }
 
+
+  //**************************************************************************
+  //** hashCode
+  //**************************************************************************
+  /** Returns the hashcode associated with the EmailAddress. If the
+   *  EmailAddress is undefined, returns the hashcode of the domain address.
+   *  If both the EmailAddress and domain address are undefined, returns 0.
+   */
     public int hashCode(){
-        return (EmailAddress != null) ? EmailAddress.hashCode() : 0;
+        return (EmailAddress!=null) ? EmailAddress.hashCode() : 
+            (domainAddress!=null? domainAddress.hashCode() : 0);
     }
 
 
-  /** Attempts to resolve a user name, email address, or an ADSI string to a
-   *  Mailbox and Contact.
-   *  @return
+  //**************************************************************************
+  //** resolveName
+  //**************************************************************************
+  /** Attempts to resolve a user name, email address, or a domain address to a
+   *  Mailbox.
    */
     public static Mailbox resolveName(String name, Connection conn) throws ExchangeException {
         StringBuffer str = new StringBuffer();
@@ -184,17 +222,14 @@ public class Mailbox {
         str.append("<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" "
             + "xmlns:t=\"http://schemas.microsoft.com/exchange/services/2006/types\" "
             + "xmlns:m=\"http://schemas.microsoft.com/exchange/services/2006/messages\">");
-        //+ "<soap:Header><t:RequestServerVersion Version=\"Exchange2007\"/></soap:Header>"
         str.append("<soap:Body>");
         str.append("<m:ResolveNames ReturnFullContactData=\"false\" >");
         str.append("<m:UnresolvedEntry>");
         str.append(name);
         str.append("</m:UnresolvedEntry>");
         str.append("</m:ResolveNames>");
-
         str.append("</soap:Body>");
         str.append("</soap:Envelope>");
-        
 
         org.w3c.dom.Document xml = conn.execute(str.toString());
         org.w3c.dom.Node[] items = javaxt.xml.DOM.getElementsByTagName("Resolution", xml);
@@ -203,7 +238,6 @@ public class Mailbox {
             for (int i=0; i<nodes.getLength(); i++){
                 org.w3c.dom.Node node = nodes.item(i);
                 if (node.getNodeType()==1){
-                    //System.out.println(node.getNodeName());
                     String nodeName = node.getNodeName();
                     if (nodeName.contains(":")) nodeName = nodeName.substring(nodeName.indexOf(":")+1);
                     if (nodeName.equalsIgnoreCase("Mailbox")){

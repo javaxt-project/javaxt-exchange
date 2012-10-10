@@ -29,10 +29,22 @@ public class Connection {
         this.password = password;
     }
 
+
+  //**************************************************************************
+  //** getHost
+  //**************************************************************************
+  /** Returns the URL to the Exchange Web Services (EWS) endpoint.
+   */
     public String getHost(){
         return ews;
     }
-    
+
+
+  //**************************************************************************
+  //** getUserName
+  //**************************************************************************
+  /** Returns the username used to bind the Exchange Web Services.
+   */
     public String getUserName(){
         return username;
     }
@@ -41,6 +53,10 @@ public class Connection {
   //**************************************************************************
   //** createRequest
   //**************************************************************************
+  /** Returns an HTTP request object configured to execute a web service
+   *  requests. To actually execute a request, users must send a SOAP message
+   *  using one of the Request.write() methods.
+   */
     protected javaxt.http.Request createRequest(){
         javaxt.http.Request request = new javaxt.http.Request(ews);
         request.validateSSLCertificates(true);
@@ -55,6 +71,16 @@ public class Connection {
   //**************************************************************************
   //** getResponse
   //**************************************************************************
+  /** Returns a response from a web service service request. The response can
+   *  be either an XML Document or the raw HTTP Response object, depending on
+   *  the parseResponse parameter.
+   * 
+   *  @param request An HTTP Request that has already been "written" to.
+   *
+   *  @param parseResponse If true, parses the HTTP Response from the server
+   *  and returns an XML Document. If false, does not parse the response and
+   *  returns the raw HTTP Response object.
+   */
     protected Object getResponse(javaxt.http.Request request, boolean parseResponse) throws ExchangeException {
         javaxt.http.Response response = request.getResponse();
         int status = response.getStatus();
@@ -76,7 +102,12 @@ public class Connection {
 
         if (!parseResponse) return response;
 
-        org.w3c.dom.Document xml = response.getXML();
+        String text = response.getText();
+        org.w3c.dom.Document xml = javaxt.xml.DOM.createDocument(text);
+        if (xml==null){ //Possible illegal characters in XML (e.g. "&#x17")
+            xml = updateXML(text);
+        }
+
         String error = parseError(xml);
         if (error!=null) throw new ExchangeException(error);
         //new javaxt.io.File("/temp/exchange-execute-" + new java.util.Date().getTime() + ".xml").write(xml);
@@ -165,21 +196,54 @@ public class Connection {
                             if (attrName.equalsIgnoreCase("ResponseCode")) ResponseCode = attrValue;
                             if (attrName.equalsIgnoreCase("MessageXml")) MessageXml = javaxt.xml.DOM.getText(details.getChildNodes());
 
-
                         }
-
-
                         return (MessageText + ": " + MessageXml);
                     }
 
                     break;
                 }
-
-
             }
-
         }
-
         return null;
+    }
+
+
+  //**************************************************************************
+  //** updateXML
+  //**************************************************************************
+  /** For whatever reason, Exchange Web Services return XML documents with
+   *  illegal XML characters (e.g. "&#x17"). This is commonly seen in the
+   *  GetItem response messages with HTML (e.g. email messages). To circumvent
+   *  this issue, this method tries to wrap the invalid characters in a CDATA
+   *  block.
+   */
+    private org.w3c.dom.Document updateXML(String text){
+
+      //Find error. See if its an illegal character.
+        while (true)
+        try{
+            java.io.InputStream is = new java.io.ByteArrayInputStream(text.getBytes("UTF-8"));
+            javax.xml.parsers.DocumentBuilderFactory builderFactory = javax.xml.parsers.DocumentBuilderFactory.newInstance();
+            javax.xml.parsers.DocumentBuilder builder = builderFactory.newDocumentBuilder();
+            return builder.parse(is);
+        }
+        catch(Exception e){
+
+          //Parse the error message. Look for errors specific to invalid characters.
+          //Note this extremely error prone and has only been tested on Java 1.6 in the US Locale...
+            String error = e.getMessage().trim();
+            if (error.startsWith("Character reference \"") && error.endsWith("\" is an invalid XML character.")){
+                String illegalChar = error.substring(error.indexOf("\"")+1, error.lastIndexOf("\""));
+                String a = text.substring(0, text.indexOf(illegalChar));
+                String b = text.substring(text.indexOf(illegalChar));
+
+                a = a.substring(0, a.lastIndexOf(">")+1) + "<![CDATA[" + a.substring(a.lastIndexOf(">")+1);
+                b = b.substring(0, b.indexOf("<")) + "]]>" + b.substring(b.indexOf("<")) ;
+                text = a + b;
+            }
+            else{
+                return null;
+            }
+        }
     }
 }
