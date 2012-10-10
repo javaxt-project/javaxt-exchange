@@ -62,6 +62,7 @@ public class Email extends FolderItem {
         this.attachments = message.attachments;
         this.updates = message.updates;
         this.lastModified = message.lastModified;
+        this.additionalProperties = message.additionalProperties;
         this.extendedProperties = message.extendedProperties;
 
       //Email specific information
@@ -99,8 +100,8 @@ public class Email extends FolderItem {
   //**************************************************************************
   /** Creates a new instance of this class
    */
-    public Email(String exchangeID, Connection conn, ExtendedFieldURI[] AdditionalProperties) throws ExchangeException{
-        super(exchangeID, conn, AdditionalProperties);
+    public Email(String exchangeID, Connection conn, ExtendedFieldURI[] additionalProperties) throws ExchangeException{
+        super(exchangeID, conn, additionalProperties);
         parseMessage();
     }
 
@@ -230,6 +231,32 @@ public class Email extends FolderItem {
                 break;
             }
         }
+
+
+      //Find the PR_SENDER_EMAIL_ADDRESS (0x0c1f001e) extended MAPI property
+        it = extendedProperties.keySet().iterator();
+        while(it.hasNext()){
+            ExtendedFieldURI property = it.next();
+            if (property.getName().equalsIgnoreCase("0xC1F")){
+                String email = extendedProperties.get(property).toString();
+                if (from!=null){
+                    if (from.getEmailAddress()==null){
+
+                        if (!email.contains("@")){
+                            from.setDomainAddress(email); //<--For performance reasons, don't resolve the domain address!
+                        }
+                        else{
+                            try{
+                                from.setEmailAddress(email);
+                            }
+                            catch(ExchangeException e){}
+                        }
+                    }
+                }
+                extendedProperties.remove(property);
+                break;
+            }
+        }
     }
 
 
@@ -355,7 +382,14 @@ public class Email extends FolderItem {
   //**************************************************************************
   //** getFrom
   //**************************************************************************
-  /** Returns the Mailbox associated with the sender.
+  /** Returns the Mailbox associated with the sender. Returns null if there
+   *  is no sender associated with this message (e.g. draft message). <p/>
+   *  Note that when a Mailbox is returned, the Mailbox may not always include
+   *  an email address. This is especially true for emails originating from
+   *  another Exchange account. In this case, you can try to retrieve the
+   *  domain address associated with the Mailbox and resolve it to an email
+   *  address via the Mailbox.getDomainAddress() and Mailbox.resolveName()
+   *  methods. 
    */
     public Mailbox getFrom(){
         return from;
@@ -630,7 +664,7 @@ public class Email extends FolderItem {
         }
 
       //Reset all the attributes of this item to reflect what's in Exchange
-        init(new Email(id, conn));
+        init(new Email(id, conn, additionalProperties));
     }
 
 

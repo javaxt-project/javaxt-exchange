@@ -53,7 +53,7 @@ public class CalendarFolder extends Folder {
    */
     public CalendarEvent[] getEvents(int offset, int limit) throws ExchangeException {
         java.util.ArrayList<CalendarEvent> events = new java.util.ArrayList<CalendarEvent>();
-        org.w3c.dom.Document xml = getItems(offset, limit, props, null);
+        org.w3c.dom.Document xml = getItems(offset, limit, props, null, null);
         org.w3c.dom.Node[] nodes = javaxt.xml.DOM.getElementsByTagName("CalendarItem", xml);
 
         for (org.w3c.dom.Node node : nodes){
@@ -118,7 +118,7 @@ public class CalendarFolder extends Folder {
         String EndDate = FolderItem.formatDate(end);
 
         java.util.ArrayList<CalendarEvent> events = new java.util.ArrayList<CalendarEvent>();
-        org.w3c.dom.Document xml = getItems("<m:CalendarView StartDate=\"" + StartDate + "\" EndDate=\"" + EndDate + "\"/>", props, null);
+        org.w3c.dom.Document xml = getItems("<m:CalendarView StartDate=\"" + StartDate + "\" EndDate=\"" + EndDate + "\"/>", props, null, null);
         org.w3c.dom.Node[] nodes = javaxt.xml.DOM.getElementsByTagName("CalendarItem", xml);
 
         for (org.w3c.dom.Node node : nodes){

@@ -17,7 +17,7 @@ public class Mailbox {
     private String RoutingType;
     private String MailboxType;
     private String ItemId;
-
+    private String domainAddress;
 
   //**************************************************************************
   //** Constructor
@@ -73,6 +73,35 @@ public class Mailbox {
   //**************************************************************************
     public EmailAddress getEmailAddress(){
         return EmailAddress;
+    }
+
+    public void setEmailAddress(EmailAddress emailAddress){
+        this.EmailAddress = emailAddress;
+    }
+
+    public void setEmailAddress(String emailAddress) throws ExchangeException {
+        setEmailAddress(new EmailAddress(emailAddress));
+    }
+
+
+  //**************************************************************************
+  //** setDomainAddress
+  //**************************************************************************
+    protected void setDomainAddress(String domainAddress){
+        this.domainAddress = domainAddress;
+    }
+
+
+  //**************************************************************************
+  //** getDomainAddress
+  //**************************************************************************
+  /** Returns a string used to represent an email address of another Exchange
+   *  account within your domain (e.g. "/o=org/ou=orgunit/cn=Recipients/cn=name").
+   *  The domain address can be resolved to an email address using the
+   *  resolveName() method.
+   */
+    public String getDomainAddress(){
+        return domainAddress;
     }
 
 
@@ -143,4 +172,52 @@ public class Mailbox {
         return (EmailAddress != null) ? EmailAddress.hashCode() : 0;
     }
 
+
+  /** Attempts to resolve a user name, email address, or an ADSI string to a
+   *  Mailbox and Contact.
+   *  @return
+   */
+    public static Mailbox resolveName(String name, Connection conn) throws ExchangeException {
+        StringBuffer str = new StringBuffer();
+
+        str.append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
+        str.append("<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" "
+            + "xmlns:t=\"http://schemas.microsoft.com/exchange/services/2006/types\" "
+            + "xmlns:m=\"http://schemas.microsoft.com/exchange/services/2006/messages\">");
+        //+ "<soap:Header><t:RequestServerVersion Version=\"Exchange2007\"/></soap:Header>"
+        str.append("<soap:Body>");
+        str.append("<m:ResolveNames ReturnFullContactData=\"false\" >");
+        str.append("<m:UnresolvedEntry>");
+        str.append(name);
+        str.append("</m:UnresolvedEntry>");
+        str.append("</m:ResolveNames>");
+
+        str.append("</soap:Body>");
+        str.append("</soap:Envelope>");
+        
+
+        org.w3c.dom.Document xml = conn.execute(str.toString());
+        org.w3c.dom.Node[] items = javaxt.xml.DOM.getElementsByTagName("Resolution", xml);
+        if (items.length>0){
+            org.w3c.dom.NodeList nodes = items[0].getChildNodes();
+            for (int i=0; i<nodes.getLength(); i++){
+                org.w3c.dom.Node node = nodes.item(i);
+                if (node.getNodeType()==1){
+                    //System.out.println(node.getNodeName());
+                    String nodeName = node.getNodeName();
+                    if (nodeName.contains(":")) nodeName = nodeName.substring(nodeName.indexOf(":")+1);
+                    if (nodeName.equalsIgnoreCase("Mailbox")){
+                        return new Mailbox(node);
+                    }
+                    else if(nodeName.equalsIgnoreCase("Contact")){
+                        //Contact contact = new Contact(node);
+                    }
+                }
+            }
+
+        }
+
+      //If we're still here, throw an Exception
+        throw new ExchangeException("No results were found.");
+    }
 }

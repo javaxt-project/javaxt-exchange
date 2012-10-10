@@ -51,6 +51,7 @@ public class CalendarEvent extends FolderItem {
         this.attachments = event.attachments;
         this.updates = event.updates;
         this.lastModified = event.lastModified;
+        this.additionalProperties = event.additionalProperties;
         this.extendedProperties = event.extendedProperties;
 
       //Calendar specific information

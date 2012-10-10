@@ -31,7 +31,7 @@ public class FieldURI {
         return false;
     }
     
-    protected String toXML(String namespace){
+    public String toXML(String namespace){
         return "<" + namespace + ":FieldURI FieldURI=\"" + this.toString() + "\"/>";
     }
 

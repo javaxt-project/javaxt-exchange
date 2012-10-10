@@ -65,6 +65,7 @@ public class FolderItem {
     protected java.util.HashSet<String> categories = new java.util.HashSet<String>();
     protected java.util.HashSet<Attachment> attachments = new java.util.HashSet<Attachment>();
     protected javaxt.utils.Date lastModified;
+    protected ExtendedFieldURI[] additionalProperties;
     protected java.util.HashMap<ExtendedFieldURI, Value> extendedProperties =
             new java.util.HashMap<ExtendedFieldURI, Value>();
 
@@ -81,12 +82,13 @@ public class FolderItem {
   //** Constructor
   //**************************************************************************
   /** Creates a new instance of this class
-   *  @param AdditionalProperties A list of attributes you wish to see
+   *  @param additionalProperties A list of attributes you wish to see
    */
-    protected FolderItem(String exchangeID, Connection conn, ExtendedFieldURI[] AdditionalProperties) throws ExchangeException{
+    protected FolderItem(String exchangeID, Connection conn, ExtendedFieldURI[] additionalProperties) throws ExchangeException{
 
         if (exchangeID==null) throw new ExchangeException("Exchange ID is required.");
         if (conn==null) throw new ExchangeException("Exchange Web Services Connection is required.");
+        this.additionalProperties = additionalProperties;
 
         StringBuffer str = new StringBuffer();
 
@@ -105,8 +107,8 @@ public class FolderItem {
         //str.append("<t:FieldURI FieldURI=\"item:LastModifiedTime\"/>"); //<--This doesn't work...
         str.append("<t:ExtendedFieldURI PropertyTag=\"0x3008\" PropertyType=\"SystemTime\" />"); //<--This returns the LastModifiedTime!
 
-        if (AdditionalProperties!=null){            
-            for (ExtendedFieldURI property : AdditionalProperties){
+        if (additionalProperties!=null){
+            for (ExtendedFieldURI property : additionalProperties){
 
                 String name = property.getName();
                 String type = property.getType();

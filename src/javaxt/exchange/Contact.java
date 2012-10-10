@@ -84,6 +84,7 @@ public class Contact extends FolderItem {
         this.attachments = contact.attachments;
         this.updates = contact.updates;
         this.lastModified = contact.lastModified;
+        this.additionalProperties = contact.additionalProperties;
         this.extendedProperties = contact.extendedProperties;
 
       //Contact specific information

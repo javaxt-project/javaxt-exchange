@@ -20,7 +20,7 @@ public class ExtendedFieldURI extends FieldURI {
   /** Creates a new instance of this class.
    *  @param id A unique id in the form of a Microsoft GUID.
    *  @param name Property name.
-   *  @param name Property type (e.g. "String").
+   *  @param name Property type (e.g. "String", "Integer", "SystemTime", etc).
    */
     public ExtendedFieldURI(String id, String name, String type){
         this.id = id;
@@ -156,7 +156,7 @@ public class ExtendedFieldURI extends FieldURI {
     }
 
     
-    protected String toXML(String namespace){
+    public String toXML(String namespace){
         String idAttr = (id==null ? "" : "PropertySetId=\"" + id + "\"");
         String nameAttr = (name.startsWith("0x") ? "PropertyTag=\"" + name + "\"" : "PropertyName=\"" + name + "\"");
         String typeAttr = "PropertyType=\"" + type + "\"";

@@ -58,7 +58,7 @@ public class ContactsFolder extends Folder {
    */
     public Contact[] getContacts(int offset, int limit) throws ExchangeException {
         java.util.ArrayList<Contact> contacts = new java.util.ArrayList<Contact>();
-        org.w3c.dom.NodeList nodes = getItems(offset, limit, null, null).getElementsByTagName("t:Contact");
+        org.w3c.dom.NodeList nodes = getItems(offset, limit, null, null, null).getElementsByTagName("t:Contact");
         for (int i=0; i<nodes.getLength(); i++){
             org.w3c.dom.Node node = nodes.item(i);
             if (node.getNodeType()==1){

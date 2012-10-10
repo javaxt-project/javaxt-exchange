@@ -36,6 +36,9 @@ public class EmailFolder extends Folder {
       //This property represents the date/time associated with the last action
       //performed on individual mail items.
         props.add(new ExtendedFieldURI(null, "0x1082", "SystemTime"));
+
+      //Add the PR_SENDER_EMAIL_ADDRESS (0x0c1f001e) extended MAPI property.
+        props.add(new ExtendedFieldURI(null, "0x0C1F", "String"));
     }
 
 
@@ -68,11 +71,15 @@ public class EmailFolder extends Folder {
    *  This parameter is optional. A null value will return no additional or
    *  extended attributes.
    *
+   *  @param where. XML fragment representing a
+   *  <a href="http://msdn.microsoft.com/en-us/library/aa563791%28v=exchg.140%29.aspx">
+   *  Restriction</a>. Null values imply no restriction.
+   *
    *  @param orderBy. SQL-style order by clause used to sort the response 
    *  (e.g. "item:DateTimeReceived DESC"). This parameter is optional. A null
    *  value implies no sort preference.
    */
-    public Email[] getMessages(int offset, int limit, FieldURI[] additionalProperties, String orderBy) throws ExchangeException {
+    public Email[] getMessages(int offset, int limit, FieldURI[] additionalProperties, String where, String orderBy) throws ExchangeException {
 
       //Merge additional properties
         java.util.HashSet<FieldURI> props = getDefaultProperties();
@@ -81,7 +88,7 @@ public class EmailFolder extends Folder {
         }
 
         java.util.ArrayList<Email> messages = new java.util.ArrayList<Email>();
-        org.w3c.dom.NodeList nodes = getItems(offset, limit, props, orderBy).getElementsByTagName("t:Message");
+        org.w3c.dom.NodeList nodes = getItems(offset, limit, props, where, orderBy).getElementsByTagName("t:Message");
         for (int i=0; i<nodes.getLength(); i++){
             org.w3c.dom.Node node = nodes.item(i);
             if (node.getNodeType()==1){
