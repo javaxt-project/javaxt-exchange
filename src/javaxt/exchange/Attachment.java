@@ -13,6 +13,7 @@ import java.io.IOException;
 public class Attachment {
 
     private String id;
+    private String cid;
     private String name;
     private String contentType;
     private String type; //FileAttachment or ItemAttachment
@@ -91,22 +92,61 @@ public class Attachment {
                 else if(nodeName.equalsIgnoreCase("ContentType")){
                     contentType = javaxt.xml.DOM.getNodeValue(childNode);
                 }
+                else if(nodeName.equalsIgnoreCase("ContentID")){
+                    cid = javaxt.xml.DOM.getNodeValue(childNode);
+                }
             }
         }
     }
-    
+
+
+  //**************************************************************************
+  //** getID
+  //**************************************************************************
+  /** Returns the unique ID of the attachment.
+   */
     public String getID(){
         return id;
     }
 
+
+  //**************************************************************************
+  //** getName
+  //**************************************************************************
+  /** Returns the name of the attachment (e.g. "Resume.doc").
+   */
     public String getName(){
         return name;
     }
 
+
+  //**************************************************************************
+  //** getContentType
+  //**************************************************************************
+  /** Returns the mime type associated with the attachment (e.g. "image/jpeg").
+   */
     public String getContentType(){
         return contentType;
     }
 
+
+  //**************************************************************************
+  //** getContentID
+  //**************************************************************************
+  /** Returns the content id (cid) associated with this attachment. This is
+   *  useful for resolving inline attachments (e.g. images) found in email
+   *  messages, calendar invites, and other folder items.
+   */
+    public String getContentID(){
+        return cid;
+    }
+
+
+  //**************************************************************************
+  //** toString
+  //**************************************************************************
+  /** Returns the name of the attachment (e.g. "Resume.doc").
+   */
     public String toString(){
         return name;
     }
@@ -252,14 +292,23 @@ public class Attachment {
                     if (nodeName.contains(" ")) nodeName = nodeName.substring(0, nodeName.indexOf(" "));
                     if (nodeName.contains(":")) nodeName = nodeName.substring(nodeName.indexOf(":")+1);
 
-                    
+
                     if (nodeName.equalsIgnoreCase("Name")){
                         name = getNodeValue(inputStream);
                     }
                     else if(nodeName.equalsIgnoreCase("ContentType")){
                         contentType = getNodeValue(inputStream);
                     }
-                    
+                    else if(nodeName.equalsIgnoreCase("ContentId")){
+                        cid = getNodeValue(inputStream);
+                    }
+                    else if(nodeName.equalsIgnoreCase("FileAttachment")){
+                        type = "FileAttachment";
+                    }
+                    else if (nodeName.equalsIgnoreCase("ItemAttachment")){
+                        type = "ItemAttachment";
+                    }
+
                     if (nodeName.toLowerCase().endsWith("responsemessage")){
                         if (node.toLowerCase().contains("error")){
                             if (!node.endsWith("/>")) node = node.substring(0, node.length()-1) + "/>";
@@ -322,6 +371,7 @@ public class Attachment {
     public static class ContentInputStream extends java.io.InputStream {
 
         private java.io.InputStream inputStream;
+        private boolean EOF = false;
 
         protected ContentInputStream(java.io.InputStream inputStream){
             this.inputStream = inputStream;
@@ -344,21 +394,32 @@ public class Attachment {
         public int read() throws IOException {
 
             int x = inputStream.read();
-            if (x==-1) return -1;
+            if (x==-1){
+                EOF = true;
+                return -1;
+            }
             else{
+                if (EOF) return -1;
                 char c = (char) x;
                 if (c == '<'){
+                    EOF = true;
                     return -1;
                 }
                 else if (c==' '){
                     while ( (x = inputStream.read()) != -1) {
                         c = (char) x;
-                        if (c == '<') return -1;
+                        if (c == '<'){
+                            EOF = true;
+                            return -1;
+                        }
                         if (c != ' ') return x;
                     }
+                    EOF = true;
                     return -1;
                 }
-                else return x;
+                else{
+                    return x;
+                }
             }
         }
     }

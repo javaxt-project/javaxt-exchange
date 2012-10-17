@@ -237,6 +237,11 @@ public class FolderItem {
 
             }
         }
+
+
+        if (itemClass.equalsIgnoreCase("IPM.Sharing") && subject==null){
+            subject = "Sharing request";
+        }
     }
 
 

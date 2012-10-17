@@ -203,7 +203,7 @@ public class Email extends FolderItem {
         }
 
       //Update the sent and received timestamps as needed
-        if (isDraft) sent = received = null;
+        //if (isDraft) sent = received = null;
 
 
       //Find the PR_LAST_VERB_EXECUTED (0x10810003) extended MAPI property
@@ -239,20 +239,35 @@ public class Email extends FolderItem {
             ExtendedFieldURI property = it.next();
             if (property.getName().equalsIgnoreCase("0xC1F")){
                 String email = extendedProperties.get(property).toString();
-                if (from!=null){
-                    if (from.getEmailAddress()==null){
+                
+                if (from==null){ //Example: Sharing Request
+                    EmailAddress _null = null;
+                    from = new Mailbox(null, _null);
+                }
+                
+                if (from.getEmailAddress()==null){
 
-                        if (!email.contains("@")){
-                            from.setDomainAddress(email); //<--For performance reasons, don't resolve the domain address!
+                    if (!email.contains("@")){
+                        from.setDomainAddress(email); //<--For performance reasons, don't resolve the domain address!
+                    }
+                    else{
+                        try{
+                            from.setEmailAddress(email);
                         }
-                        else{
-                            try{
-                                from.setEmailAddress(email);
-                            }
-                            catch(ExchangeException e){}
-                        }
+                        catch(ExchangeException e){}
                     }
                 }
+                extendedProperties.remove(property);
+                break;
+            }
+        }
+
+      //Find the PR_HASATTACH (0x0e1b000b) extended MAPI property
+        it = extendedProperties.keySet().iterator();
+        while(it.hasNext()){
+            ExtendedFieldURI property = it.next();
+            if (property.getName().equalsIgnoreCase("0xE1B")){
+                hasAttachments = extendedProperties.get(property).toBoolean();
                 extendedProperties.remove(property);
                 break;
             }
@@ -573,6 +588,61 @@ public class Email extends FolderItem {
     public Mailbox[] getBccRecipients(){
         if (BccRecipients.isEmpty()) return null;
         else return BccRecipients.toArray(new Mailbox[BccRecipients.size()]);
+    }
+
+
+  //**************************************************************************
+  //** isSharingRequest
+  //**************************************************************************
+  /** Returns true if the message is an invitation to share a calendar
+   *  or contact folder.
+   */
+    public boolean isSharingRequest(){
+        return itemClass.equalsIgnoreCase("IPM.Sharing");
+    }
+
+
+  //**************************************************************************
+  //** acceptSharingRequest
+  //**************************************************************************
+  /** Used to accept a sharing invitation, allowing another user access to
+   *  view the calendar or contacts data.
+   */
+    public void acceptSharingRequest(Connection conn) throws ExchangeException {
+        if (!isSharingRequest()) return;
+
+      /*NOTE: This method fails on my 2010 server. It complains that that the
+        request is invalid:
+
+        The request failed schema validation: The element 'Items' in namespace
+        'http://schemas.microsoft.com/exchange/services/2006/messages' has
+        invalid child element 'AcceptSharingInvitation' in namespace
+        'http://schemas.microsoft.com/exchange/services/2006/types'.
+
+        This message doesn't make sense! The documentation clearly indicates
+        that AcceptSharingInvitation is a child of Items:
+        http://msdn.microsoft.com/en-us/library/aa565652%28v=exchg.140%29.aspx
+
+        Also, check out the example from Microsoft for how to accept a sharing
+        request:
+        http://msdn.microsoft.com/en-us/library/exchange/ee693280%28v=exchg.140%29.aspx
+       */
+
+
+        StringBuffer msg = new StringBuffer();
+        msg.append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
+        msg.append("<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:t=\"http://schemas.microsoft.com/exchange/services/2006/types\" xmlns:m=\"http://schemas.microsoft.com/exchange/services/2006/messages\">");
+        msg.append("<soap:Body>");
+        msg.append("<m:CreateItem MessageDisposition=\"" + "SendOnly" + "\">");
+        msg.append("<m:Items>");
+        msg.append("<t:AcceptSharingInvitation>");
+        msg.append("<t:ReferenceItemId Id=\"" + this.getID() + "\" ChangeKey=\"" + this.getChangeKey(conn) + "\" />");
+        msg.append("</t:AcceptSharingInvitation>");
+        msg.append("</m:Items>");
+        msg.append("</m:CreateItem>");
+        msg.append("</soap:Body>");
+        msg.append("</soap:Envelope>");
+        conn.execute(msg.toString());
     }
 
 

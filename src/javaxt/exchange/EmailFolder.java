@@ -39,6 +39,13 @@ public class EmailFolder extends Folder {
 
       //Add the PR_SENDER_EMAIL_ADDRESS (0x0c1f001e) extended MAPI property.
         props.add(new ExtendedFieldURI(null, "0x0C1F", "String"));
+
+      //Add the PR_HASATTACH (0x0e1b000b) extended MAPI property. This property
+      //is used to indicate whether the message has an attachment. Note that
+      //the item:HasAttachments doesn't reveal "hidden" attachments. Also,
+      //you cannot perform compound (multidimensional) sorts on the
+      //item:HasAttachments field.
+        props.add(new ExtendedFieldURI(null, "0x0E1B", "Boolean"));
     }
 
 
@@ -75,26 +82,39 @@ public class EmailFolder extends Folder {
    *  <a href="http://msdn.microsoft.com/en-us/library/aa563791%28v=exchg.140%29.aspx">
    *  Restriction</a>. Null values imply no restriction.
    *
-   *  @param orderBy. SQL-style order by clause used to sort the response 
-   *  (e.g. "item:DateTimeReceived DESC"). This parameter is optional. A null
-   *  value implies no sort preference.
    */
-    public Email[] getMessages(int offset, int limit, FieldURI[] additionalProperties, String where, String orderBy) throws ExchangeException {
+    public Email[] getMessages(int offset, int limit, FieldURI[] additionalProperties, String where, FieldOrder[] sortOrder) throws ExchangeException {
 
-      //Merge additional properties
+      //Merge additional properties with default properties
         java.util.HashSet<FieldURI> props = getDefaultProperties();
         if (additionalProperties!=null){
             for (FieldURI property : additionalProperties) props.add(property);
         }
 
+      //Execute GetItems request
         java.util.ArrayList<Email> messages = new java.util.ArrayList<Email>();
-        org.w3c.dom.NodeList nodes = getItems(offset, limit, props, where, orderBy).getElementsByTagName("t:Message");
+        org.w3c.dom.Document xml = getItems(offset, limit, props, where, sortOrder);
+
+
+      //Parse email messages
+        org.w3c.dom.NodeList nodes = xml.getElementsByTagName("t:Message");
         for (int i=0; i<nodes.getLength(); i++){
             org.w3c.dom.Node node = nodes.item(i);
             if (node.getNodeType()==1){
                 messages.add(new Email(node));
             }
         }
+
+
+      //Parse Item nodes (e.g. Sharing Request)
+        nodes = xml.getElementsByTagName("t:Item");
+        for (int i=0; i<nodes.getLength(); i++){
+            org.w3c.dom.Node node = nodes.item(i);
+            if (node.getNodeType()==1){
+                messages.add(new Email(node));
+            }
+        }
+
         return messages.toArray(new Email[messages.size()]);
     }
 

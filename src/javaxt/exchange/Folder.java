@@ -375,11 +375,11 @@ public class Folder {
    *  @param offset Item offset. 0 implies no offset.
    *  @param limit Maximum number of items to return.
    */
-    protected org.w3c.dom.Document getItems(int offset, int limit, java.util.HashSet<FieldURI> additionalProperties, String where, String orderBy) throws ExchangeException {
+    protected org.w3c.dom.Document getItems(int offset, int limit, java.util.HashSet<FieldURI> additionalProperties, String where, FieldOrder[] sortOrder) throws ExchangeException {
         if (offset<1) offset = 0;
         if (limit<1) limit = 1;
         return getItems("<m:IndexedPageItemView MaxEntriesReturned=\"" + limit + "\" Offset=\"" + offset + "\" BasePoint=\"Beginning\"/>",
-            additionalProperties, where, orderBy);
+            additionalProperties, where, sortOrder);
     }
 
 
@@ -397,37 +397,24 @@ public class Folder {
    *  additional attributes by providing a list of properties
    *  (e.g. "calendar:TimeZone", "item:Sensitivity", etc).
    *
-   *  @param orderBy SQL-style order by clause used to sort the results
+   *  @param sortOrder SQL-style order by clause used to sort the results
    *  (e.g. "item:DateTimeReceived DESC").
    */
-    protected org.w3c.dom.Document getItems(String view, java.util.HashSet<FieldURI> additionalProperties, String where, String orderBy) throws ExchangeException {
+    protected org.w3c.dom.Document getItems(String view, java.util.HashSet<FieldURI> additionalProperties, String where, FieldOrder[] sortOrder) throws ExchangeException {
 
         
       //Parse order by statement
         String sort = "";
-        if (orderBy!=null){
-
-            for (String str : orderBy.split(",")){
-                str = str.trim();
-                String direction = "Ascending";
-                if (str.toUpperCase().endsWith(" ASC")){
-                    str = str.substring(0, str.lastIndexOf(" "));
-                }
-                else if (str.toUpperCase().endsWith(" DESC")){
-                    str = str.substring(0, str.lastIndexOf(" "));
-                    direction = "Descending";
-                }
-                if (str.length()>0){
-                    sort += "<t:FieldOrder Order=\"" + direction + "\">"
-                    + "<t:FieldURI FieldURI=\"" + str + "\" /></t:FieldOrder>";
-                }
+        if (sortOrder!=null){
+            for (FieldOrder field : sortOrder){
+                sort += field.toXML();
             }
-
             if (sort.length()>0){
                 sort = "<m:SortOrder>" + sort + "</m:SortOrder>";
             }
         }
 
+//System.out.println(sort);
       //Parse where clasue and create restriction
         if (where==null) where = "";
         else where = where.trim();
@@ -500,7 +487,7 @@ public class Folder {
         + "</m:FindItem>"
         + "</soap:Body>"
         + "</soap:Envelope>";
-        
+    
         return conn.execute(msg);
     }
 

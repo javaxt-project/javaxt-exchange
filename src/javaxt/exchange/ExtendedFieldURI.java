@@ -20,7 +20,8 @@ public class ExtendedFieldURI extends FieldURI {
   /** Creates a new instance of this class.
    *  @param id A unique id in the form of a Microsoft GUID.
    *  @param name Property name.
-   *  @param name Property type (e.g. "String", "Integer", "SystemTime", etc).
+   *  @param name Property type (e.g. "String", "Integer", "Boolean",
+   *  "SystemTime", etc).
    */
     public ExtendedFieldURI(String id, String name, String type){
         this.id = id;
