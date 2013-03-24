@@ -65,10 +65,25 @@ public class PhoneNumber {
         return number;
     }
 
+
+  //**************************************************************************
+  //** getType
+  //**************************************************************************
+  /** Returns the type of phone number. Options include:
+   * <ul>
+   * <li>AssistantPhone</li><li>BusinessFax</li><li>BusinessPhone</li>
+   * <li>BusinessPhone2</li><li>Callback</li><li>CarPhone</li>
+   * <li>CompanyMainPhone</li><li>HomeFax</li><li>HomePhone</li>
+   * <li>HomePhone2</li><li>Isdn</li><li>MobilePhone</li><li>OtherFax</li>
+   * <li>OtherTelephone</li><li>Pager</li><li>PrimaryPhone</li>
+   * <li>RadioPhone</li><li>Telex</li><li>TtyTddPhone</li>
+   * </ul>
+   */
     public String getType(){
         this.hashCode();
         return type;
     }
+
 
     public String toString(){
         return type + ":  " + number;
@@ -134,7 +149,7 @@ public class PhoneNumber {
     private String getType(String type){
         type = type.toUpperCase();
         if (type.contains("ASSISTANT")) return "AssistantPhone";
-        if (type.contains("BUSINESSFAX")) return "BusinessFax";
+        if (type.contains("BUSINESSFAX") || type.contains("WORKFAX")) return "BusinessFax";
         if (type.contains("BUSINESS") || type.contains("WORK") || type.contains("OFFICE")) return "BusinessPhone";
         //else if (type.contains("BUSINESS2")) return "BusinessPhone2";
         if (type.contains("CALLBACK")) return "Callback";

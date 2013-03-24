@@ -631,7 +631,7 @@ public class FolderItem {
             if (key.getName().equalsIgnoreCase(name))
                 return extendedProperties.get(key);
         }
-        return null;
+        return new Value(null);
     }
 
 
@@ -967,7 +967,7 @@ System.out.println(msg + "\r\n");
   /** Private method used to normalize a string. This method is called by all
    *  setters and getters that deal with string values.
    */
-    protected String getValue(String val){
+    protected static String getValue(String val){
         if (val!=null){
             val = val.trim();
             if (val.length()==0) val = null;
