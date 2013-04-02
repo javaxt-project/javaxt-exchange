@@ -17,6 +17,25 @@ public class PhoneNumber {
   /** Static variable to support the getPhoneNumber method. */
     private final static String[] numbers = new String[]{"0","1","2","3","4","5","6","7","8","9"};
 
+    private final static String[] types = new String[]{
+
+      //Personal Phone
+        "HomePhone","MobilePhone","HomeFax","HomePhone2",
+
+      //Work Phone
+        "BusinessPhone","BusinessPhone2","BusinessFax",
+        "CompanyMainPhone","AssistantPhone",
+
+      //Primary/Callback
+        "PrimaryPhone","Callback",
+
+      //Other
+        "OtherFax","OtherTelephone",
+
+      //Legacy
+        "CarPhone","Pager","Isdn","RadioPhone","Telex","TtyTddPhone"
+    };
+
 
   //**************************************************************************
   //** Constructor
@@ -85,6 +104,23 @@ public class PhoneNumber {
     }
 
 
+  //**************************************************************************
+  //** getTypes
+  //**************************************************************************
+  /** Returns a static list of phone number types:
+   * <ul>
+   * <li>AssistantPhone</li><li>BusinessFax</li><li>BusinessPhone</li>
+   * <li>BusinessPhone2</li><li>Callback</li><li>CarPhone</li>
+   * <li>CompanyMainPhone</li><li>HomeFax</li><li>HomePhone</li>
+   * <li>HomePhone2</li><li>Isdn</li><li>MobilePhone</li><li>OtherFax</li>
+   * <li>OtherTelephone</li><li>Pager</li><li>PrimaryPhone</li>
+   * <li>RadioPhone</li><li>Telex</li><li>TtyTddPhone</li>
+   * </ul>
+   */
+    public static String[] getTypes(){
+        return types;
+    }
+
     public String toString(){
         return type + ":  " + number;
     }
@@ -102,7 +138,7 @@ public class PhoneNumber {
 
     
   //**************************************************************************
-  //** getPhoneNumber
+  //** getNumber
   //**************************************************************************
   /** Used to normalize a phone number into a common format. For example, if
    *  you pass in "(555) 555-5555" or "555.555.5555" or "5555555555", the
@@ -140,36 +176,37 @@ public class PhoneNumber {
     }
 
 
-
   //**************************************************************************
-  //** getPhoneType
+  //** getType
   //**************************************************************************
-  /** Used to normalize a phone number type.
+  /** Returns a phone number type that most closely matches the given string.
    */
     private String getType(String type){
-        type = type.toUpperCase();
-        if (type.contains("ASSISTANT")) return "AssistantPhone";
-        if (type.contains("BUSINESSFAX") || type.contains("WORKFAX")) return "BusinessFax";
-        if (type.contains("BUSINESS") || type.contains("WORK") || type.contains("OFFICE")) return "BusinessPhone";
-        //else if (type.contains("BUSINESS2")) return "BusinessPhone2";
-        if (type.contains("CALLBACK")) return "Callback";
-        if (type.contains("CAR")) return "CarPhone";
-        //else if (type.contains("COMPANYMAIN")) return "CompanyMainPhone";
-        if (type.equals("HOMEFAX")) return "HomeFax";
+        type = type.toUpperCase().replace(" ", "");
+        for (String t : types){
+            if (t.toUpperCase().equals(type)) return t;
+        }
+
+
         if (type.contains("HOME")) return "HomePhone";
-        //else if (type.contains("HOME2")) return "HomePhone2";
-        if (type.contains("ISDN")) return "Isdn";
         if (type.contains("MOBILE")) return "MobilePhone";
-        if (type.equals("OTHERFAX")) return "OtherFax";
-        if (type.contains("PAGER")) return "Pager";
+        
+        if (type.equals("FAX") || type.equals("COMPANYFAX") || type.equals("WORKFAX")) return "BusinessFax";
+        if (type.equals("PERSONALFAX")) return "HomeFax";
+        if (type.contains("FAX")) return "OtherFax";
+
+        if (type.contains("BUSINESS") || type.contains("WORK") || type.contains("OFFICE")) return "BusinessPhone";
+        if (type.contains("ASSISTANT")) return "AssistantPhone";
+
+
         if (type.contains("PRIMARY")) return "PrimaryPhone";
+        if (type.contains("CALLBACK")) return "Callback";
+        
+
+        if (type.contains("CAR")) return "CarPhone";
         if (type.contains("RADIO")) return "RadioPhone";
-        if (type.contains("TELEX")) return "Telex";
-        if (type.contains("TTYTDD")) return "TtyTddPhone";
+        if (type.contains("TTY") || type.contains("TDD")) return "TtyTddPhone";
+
         return "OtherTelephone";
     }
-
-
-
-
 }
