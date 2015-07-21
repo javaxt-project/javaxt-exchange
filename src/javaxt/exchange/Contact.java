@@ -922,6 +922,9 @@ public class Contact extends FolderItem {
    */
     public void setBirthDay(javaxt.utils.Date birthday){
 
+        if (birthday!=null) birthday = birthday.clone();
+
+
       //Validate the date
         if (birthday!=null){
             if (birthday.getYear()<1900 || birthday.isAfter(new javaxt.utils.Date())){
@@ -967,7 +970,8 @@ public class Contact extends FolderItem {
   /** Returns the date of birth.
    */
     public javaxt.utils.Date getBirthDay(){
-        return birthday;
+        if (birthday==null) return null;
+        return birthday.clone();
     }
 
 

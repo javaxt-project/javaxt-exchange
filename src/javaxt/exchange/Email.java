@@ -418,7 +418,8 @@ public class Email extends FolderItem {
    *  the message is a draft.
    */
     public javaxt.utils.Date getDateTimeReceived(){
-        return received;
+        if (received==null) return null;
+        return received.clone();
     }
 
 
@@ -429,7 +430,8 @@ public class Email extends FolderItem {
    *  the message has not been sent (e.g. Draft message).
    */
     public javaxt.utils.Date getDateTimeSent(){
-        return sent;
+        if (sent==null) return null;
+        return sent.clone();
     }
 
 
@@ -463,7 +465,8 @@ public class Email extends FolderItem {
    *  "You forwarded this message on 12/13/2012 6:01 PM."
    */
     public javaxt.utils.Date getResponseDate(){
-        return responseDate;
+        if (responseDate==null) return null;
+        return responseDate.clone();
     }
 
 

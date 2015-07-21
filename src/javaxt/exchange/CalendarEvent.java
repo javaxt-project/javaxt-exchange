@@ -519,10 +519,11 @@ public class CalendarEvent extends FolderItem {
   //**************************************************************************
   //** getStartTime
   //**************************************************************************
-  /** Returns the date of birth.
+  /** Returns the start time.
    */
     public javaxt.utils.Date getStartTime(){
-        return startTime;
+        if (startTime==null) return null;
+        return startTime.clone();
     }
 
 
@@ -572,7 +573,8 @@ public class CalendarEvent extends FolderItem {
 
 
     public javaxt.utils.Date getEndTime(){
-        return endTime;
+        if (endTime==null) return null;
+        return endTime.clone();
     }
 
 

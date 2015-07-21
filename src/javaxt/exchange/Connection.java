@@ -64,6 +64,7 @@ public class Connection {
         request.setHeader("Accept", "*/*");
         request.setHeader("Content-Type", "text/xml");
         request.setHeader("Accept-Encoding", "gzip,deflate");
+        request.setNumRedirects(0); //<-- Assumes the URL to the Exchange Web Services (EWS) endpoint is correct!
         return request;
     }
 

@@ -238,9 +238,10 @@ public class FolderItem {
             }
         }
 
-
-        if (itemClass.equalsIgnoreCase("IPM.Sharing") && subject==null){
-            subject = "Sharing request";
+        if (itemClass!=null){
+            if (itemClass.equalsIgnoreCase("IPM.Sharing") && subject==null){
+                subject = "Sharing request";
+            }
         }
     }
 
@@ -322,7 +323,8 @@ public class FolderItem {
    *  value.
    */
     public javaxt.utils.Date getLastModifiedTime(){
-        return lastModified;
+        if (lastModified==null) return null;
+        return lastModified.clone();
     }
 
 
