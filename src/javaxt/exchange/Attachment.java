@@ -241,7 +241,7 @@ public class Attachment {
         + "</soap:Body>"
         + "</soap:Envelope>";
 
-        javaxt.http.Response response = (javaxt.http.Response) conn.execute(msg, false);
+        javaxt.http.Response response = (javaxt.http.Response) conn.execute(msg, null, false);
         
         String contentEncoding = response.getHeader("Content-Encoding");
         if (contentEncoding!=null && contentEncoding.equalsIgnoreCase("gzip")){

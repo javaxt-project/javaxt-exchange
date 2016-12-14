@@ -28,6 +28,7 @@ public class Email extends FolderItem {
   //The following parameters are for internal use only!
     private String referenceId;
     private String messageType = "Message";
+    private java.util.HashMap<String, String> headers = new java.util.HashMap<String, String>();
 
 
   //**************************************************************************
@@ -394,6 +395,16 @@ public class Email extends FolderItem {
     }
 
 
+    public String getMessageClass(){
+        return itemClass;
+    }
+    
+    public void setMessageClass(String itemClass){
+        this.itemClass = itemClass;
+    }
+    
+
+    
   //**************************************************************************
   //** getFrom
   //**************************************************************************
@@ -740,6 +751,9 @@ public class Email extends FolderItem {
         init(new Email(id, conn, additionalProperties));
     }
 
+    public void setHeaders(java.util.HashMap<String,String> headers){
+        this.headers = headers;
+    }
 
   //**************************************************************************
   //** send
@@ -773,7 +787,7 @@ public class Email extends FolderItem {
         msg.append("</m:SendItem>");
         msg.append("</soap:Body>");
         msg.append("</soap:Envelope>");
-        conn.execute(msg.toString());
+        conn.execute(msg.toString(), headers);
     }
 
 
@@ -828,6 +842,7 @@ public class Email extends FolderItem {
 
         
         msg.append("<t:" + messageType + ">");
+        if (this.getMessageClass()!=null) msg.append("<t:ItemClass>" + this.getMessageClass() + "</t:ItemClass>"); //<--New for sharing requests
         if (this.getSubject()!=null) msg.append("<t:Subject>" + this.getSubject() + "</t:Subject>");
         if (referenceId==null) msg.append("<t:Sensitivity>" + this.getSensitivity() + "</t:Sensitivity>");
 

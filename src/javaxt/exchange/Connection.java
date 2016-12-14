@@ -57,18 +57,33 @@ public class Connection {
    *  requests. To actually execute a request, users must send a SOAP message
    *  using one of the Request.write() methods.
    */
-    protected javaxt.http.Request createRequest(){
+    protected javaxt.http.Request createRequest(java.util.HashMap<String, String> headers){
+        
+        if (headers==null) headers = new java.util.HashMap<String, String>();
+        headers.put("Accept", "*/*");
+        headers.put("Content-Type", "text/xml");
+        headers.put("Accept-Encoding", "gzip,deflate");        
+        
         javaxt.http.Request request = new javaxt.http.Request(ews);
         request.validateSSLCertificates(true);
         request.setCredentials(username, password);
-        request.setHeader("Accept", "*/*");
-        request.setHeader("Content-Type", "text/xml");
-        request.setHeader("Accept-Encoding", "gzip,deflate");
+//        request.setHeader("Accept", "*/*");
+//        request.setHeader("Content-Type", "text/xml");
+//        request.setHeader("Accept-Encoding", "gzip,deflate");
+        java.util.Iterator<String> it = headers.keySet().iterator();
+        while (it.hasNext()){
+            String key = it.next();
+            request.setHeader(key, headers.get(key));
+        }
         request.setNumRedirects(0); //<-- Assumes the URL to the Exchange Web Services (EWS) endpoint is correct!
         return request;
     }
 
+    protected javaxt.http.Request createRequest(){
+        return createRequest(null);
+    }
 
+    
   //**************************************************************************
   //** getResponse
   //**************************************************************************
@@ -125,7 +140,7 @@ public class Connection {
    *  If true, will return an org.w3c.dom.Document. If false, returns an
    *  javaxt.http.Response.
    */
-    public Object execute(String soap, boolean parseResponse) throws ExchangeException {
+    public Object execute(String soap, java.util.HashMap<String, String> headers, boolean parseResponse) throws ExchangeException {
         javaxt.http.Request request = createRequest();
         request.write(soap);
         return getResponse(request, parseResponse);
@@ -140,9 +155,13 @@ public class Connection {
    *  @param soap Raw SOAP message
    */
     public org.w3c.dom.Document execute(String soap) throws ExchangeException {
-        return (org.w3c.dom.Document) this.execute(soap, true);
+        return (org.w3c.dom.Document) this.execute(soap, null);
     }
 
+    
+    public org.w3c.dom.Document execute(String soap, java.util.HashMap<String, String> headers) throws ExchangeException {
+        return (org.w3c.dom.Document) this.execute(soap, headers, true);
+    }
 
   //**************************************************************************
   //** toString

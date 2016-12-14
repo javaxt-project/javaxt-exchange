@@ -32,6 +32,23 @@ public class Folder {
   //**************************************************************************
   //** Constructor
   //**************************************************************************
+  /** Creates a new instance of this class using a folder
+   */
+    protected Folder(Folder folder){
+        this.id = folder.id;
+        this.parentID = folder.parentID;
+        this.name = folder.name;
+        this.changeKey = folder.changeKey;
+        this.totalCount = folder.totalCount;
+        this.unreadCount = folder.unreadCount;
+        this.folderCount = folder.folderCount;
+        this.conn = folder.conn;
+    }
+
+
+  //**************************************************************************
+  //** Constructor
+  //**************************************************************************
   /** Creates a new instance of this class using a folder name/id.
    *  @param folderName Name of the exchange folder (e.g. inbox, contacts, etc).
    */
@@ -98,7 +115,8 @@ public class Folder {
   //**************************************************************************
   /** Returns an array of folders found in this folder. Returns a zero length
    *  array of no folders are found.
-   *  @param Traversal Possible values include "Deep", "Shallow", "SoftDeleted"
+   *  @param Traversal Possible values include "Deep", "Shallow", "SoftDeleted".
+   *  Defaults to "Shallow" if a null or invalid string is used.
    */
     public Folder[] getFolders(String Traversal) throws ExchangeException {
         java.util.ArrayList<Folder> folders = new java.util.ArrayList<Folder>();
@@ -414,7 +432,7 @@ public class Folder {
             }
         }
 
-//System.out.println(sort);
+
       //Parse where clasue and create restriction
         if (where==null) where = "";
         else where = where.trim();
@@ -455,7 +473,6 @@ public class Folder {
                 }
             }
         }
-//System.out.println(props);
 
         String msg =
         "<?xml version=\"1.0\" encoding=\"utf-8\"?>"

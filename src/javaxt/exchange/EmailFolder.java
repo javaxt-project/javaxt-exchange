@@ -22,6 +22,26 @@ public class EmailFolder extends Folder {
    */
     public EmailFolder(String folderName, Connection conn) throws ExchangeException {
         super(folderName, conn);
+        init();
+    }
+
+
+  //**************************************************************************
+  //** Constructor
+  //**************************************************************************
+  /** Creates a new instance of this class.
+   */
+    public EmailFolder(Folder folder) throws ExchangeException {
+        super(folder);
+        init();
+    }
+
+
+  //**************************************************************************
+  //** init
+  //**************************************************************************
+
+    private void init(){
         props.add(new FieldURI("item:Importance"));
         props.add(new FieldURI("item:DateTimeReceived"));
         props.add(new FieldURI("item:IsDraft"));
