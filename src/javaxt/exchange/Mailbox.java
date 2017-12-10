@@ -26,7 +26,8 @@ public class Mailbox {
 
     protected Mailbox(org.w3c.dom.Node mailboxNode) throws ExchangeException {
         org.w3c.dom.NodeList mailboxItems = mailboxNode.getChildNodes();
-
+        ExchangeException ex = null;
+        
         for (int i=0; i<mailboxItems.getLength(); i++){
             org.w3c.dom.Node node = mailboxItems.item(i);
             if (node.getNodeType()==1){
@@ -38,7 +39,18 @@ public class Mailbox {
                     Name = javaxt.xml.DOM.getNodeValue(node);
                 }
                 else if(nodeName.equalsIgnoreCase("EmailAddress")){
-                    EmailAddress = new EmailAddress(javaxt.xml.DOM.getNodeValue(node));
+                    try{
+                        EmailAddress = new EmailAddress(javaxt.xml.DOM.getNodeValue(node));
+                    }
+                    catch(ExchangeException e){
+                        String err = e.getMessage();
+                        if (err.startsWith("Invalid Email Address:")){
+                            ex = e;
+                        }
+                        else{
+                            throw e;
+                        }
+                    }    
                 }
                 else if(nodeName.equalsIgnoreCase("RoutingType")){
                     RoutingType = javaxt.xml.DOM.getNodeValue(node);
@@ -50,6 +62,31 @@ public class Mailbox {
                     ItemId = javaxt.xml.DOM.getNodeValue(node);
                 }
             }
+        }
+        
+
+      //Try extracting email address from other fields (e.g. Name)
+        if (EmailAddress==null){
+            
+            /*
+            if (Name.contains("@")){
+                String str = Name.trim();
+
+
+              //This logic is a little hacky. I found email addresses embedded in names
+                int idx = str.indexOf("(");
+                if (idx>-1 && str.endsWith(")")){
+                    String _email = str.substring(idx+1, str.length()-1).trim();
+                    System.out.println(_email);
+                    EmailAddress = new EmailAddress(_email);
+                    Name = str.substring(0, idx);
+                    System.out.println(Name);
+                }
+            }
+            else{
+                throw ex;
+            }
+            */
         }
     }
 

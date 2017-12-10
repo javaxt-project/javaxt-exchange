@@ -87,7 +87,7 @@ public class CalendarEvent extends FolderItem {
    */
     public CalendarEvent(String exchangeID, Connection conn, ExtendedFieldURI[] AdditionalProperties) throws ExchangeException{
         super(exchangeID, conn, AdditionalProperties);
-        parseCalendarItem();
+        parseCalendarItem(conn);
     }
 
 
@@ -119,9 +119,9 @@ public class CalendarEvent extends FolderItem {
   //**************************************************************************
   /** Creates a new instance of CalendarEvent. */
 
-    protected CalendarEvent(org.w3c.dom.Node calendarItemNode) throws ExchangeException {
+    protected CalendarEvent(org.w3c.dom.Node calendarItemNode, Connection conn) throws ExchangeException {
         super(calendarItemNode);
-        parseCalendarItem();
+        parseCalendarItem(conn);
     }
 
 
@@ -130,7 +130,7 @@ public class CalendarEvent extends FolderItem {
   //**************************************************************************
   /** Used to parse an xml node with event information.
    */
-    private void parseCalendarItem() throws ExchangeException {
+    private void parseCalendarItem(Connection conn) throws ExchangeException {
 
         String timezone = null;
 
@@ -167,21 +167,45 @@ public class CalendarEvent extends FolderItem {
                 }
                 else if(nodeName.equalsIgnoreCase("Organizer")){
                     org.w3c.dom.Node[] mailbox = javaxt.xml.DOM.getElementsByTagName("Mailbox", outerNode);
-                    if (mailbox.length>0) organizer = new Mailbox(mailbox[0]);
+                    if (mailbox.length>0) organizer = getMailbox(mailbox[0], conn);
                 }
                 else if(nodeName.equalsIgnoreCase("RequiredAttendees")){
                     for (org.w3c.dom.Node node : javaxt.xml.DOM.getElementsByTagName("Mailbox", outerNode)){
-                        attendees.put(new Mailbox(node), true);
+                        attendees.put(getMailbox(node, conn), true);
                     }
                 }
                 else if(nodeName.equalsIgnoreCase("OptionalAttendees")){
                     for (org.w3c.dom.Node node : javaxt.xml.DOM.getElementsByTagName("Mailbox", outerNode)){
-                        attendees.put(new Mailbox(node), false);
+                        attendees.put(getMailbox(node, conn), false);
                     }
                 }
             }
         }
         setTimeZone(timezone);
+    }
+
+    
+  //**************************************************************************
+  //** getMailbox
+  //**************************************************************************
+    private Mailbox getMailbox(org.w3c.dom.Node node, Connection conn){
+        try{
+            return new Mailbox(node);
+        }
+        catch(ExchangeException e){
+            String err = e.getMessage();
+            try{
+                if (err.startsWith("Invalid Email Address:")){
+                    String invalidEmail = err.substring(err.indexOf(":")+1).trim();
+                    return Mailbox.resolveName(invalidEmail, conn);
+                }
+            }
+            catch(Exception ex){
+                ex.printStackTrace();
+            }
+            
+            return null;
+        }
     }
 
 

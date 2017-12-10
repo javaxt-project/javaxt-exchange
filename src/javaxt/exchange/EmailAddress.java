@@ -35,7 +35,7 @@ public class EmailAddress {
         }
         
         if (emailAddress==null){
-            throw new ExchangeException("Invalid Email Address:  " + email);
+            throw new ExchangeException("Invalid Email Address:  " + email); //<--DO NOT CHANGE THIS ERROR MESSAGE! Check code for usage...
         }
         
         this.emailAddress = emailAddress;
