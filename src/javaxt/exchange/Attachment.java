@@ -322,7 +322,7 @@ public class Attachment {
                     }
                     else if(nodeName.equalsIgnoreCase("Content")){
                         if (getContent){
-                            return new javaxt.utils.Base64.InputStream(
+                            return javaxt.utils.Base64.decode(
                                 new ContentInputStream(inputStream)
                             );
                         }
@@ -452,7 +452,7 @@ public class Attachment {
             + "<t:Content>").getBytes("UTF-8"));
 
 
-            f = new javaxt.utils.Base64.InputStream(file.getInputStream(), javaxt.utils.Base64.ENCODE);
+            f = javaxt.utils.Base64.encode(file.getInputStream());
     /*
     <FileAttachment>
        <AttachmentId/>
