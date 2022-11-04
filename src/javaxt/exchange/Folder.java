@@ -420,7 +420,7 @@ public class Folder {
    */
     protected org.w3c.dom.Document getItems(String view, java.util.HashSet<FieldURI> additionalProperties, String where, FieldOrder[] sortOrder) throws ExchangeException {
 
-        
+
       //Parse order by statement
         String sort = "";
         if (sortOrder!=null){
@@ -490,7 +490,7 @@ public class Folder {
                 + "<t:FieldURI FieldURI=\"item:ItemClass\"/>"
                 //+ "<t:FieldURI FieldURI=\"item:LastModifiedTime\"/>" //value="item:LastModifiedTime" //<--This doesn't work...
                 + "<t:ExtendedFieldURI PropertyTag=\"0x3008\" PropertyType=\"SystemTime\" />" //<--This returns the LastModifiedTime!
-                + props.toString() 
+                + props.toString()
                 + "</t:AdditionalProperties>"
         + "</m:ItemShape>"
 
@@ -504,7 +504,7 @@ public class Folder {
         + "</m:FindItem>"
         + "</soap:Body>"
         + "</soap:Envelope>";
-    
+
         return conn.execute(msg);
     }
 
@@ -517,49 +517,67 @@ public class Folder {
    */
     public java.util.HashMap<String, javaxt.utils.Date> getIndex() throws ExchangeException {
 
-        String msg =
-        "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
-        + "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:t=\"http://schemas.microsoft.com/exchange/services/2006/types\" xmlns:m=\"http://schemas.microsoft.com/exchange/services/2006/messages\">"
-        + "<soap:Body>"
-        + "<m:FindItem Traversal=\"Shallow\">"
-        + "<m:ItemShape>"
-                + "<t:BaseShape>IdOnly</t:BaseShape>" //<--"Default" vs "AllProperties"
-                + "<t:AdditionalProperties>"
-                + "<t:ExtendedFieldURI PropertyTag=\"0x3008\" PropertyType=\"SystemTime\" />" //<--This returns the LastModifiedTime!
-                + "</t:AdditionalProperties>"
-        + "</m:ItemShape>"
-
-        + "<m:SortOrder>"
-        + "<t:FieldOrder Order=\"Descending\">"
-            + "<t:ExtendedFieldURI PropertyTag=\"0x3008\" PropertyType=\"SystemTime\" />"
-        + "</t:FieldOrder>"
-        + "</m:SortOrder>"
-            
-        //+ "<m:IndexedPageItemView MaxEntriesReturned=\"1\" Offset=\"0\" BasePoint=\"Beginning\"/>"
-        + "<m:ParentFolderIds>"
-        + "<t:FolderId Id=\"" + id + "\"/>"
-        + "</m:ParentFolderIds>"
-        + "</m:FindItem>"
-        + "</soap:Body>"
-        + "</soap:Envelope>";
-
-        org.w3c.dom.Document xml = conn.execute(msg);
-        //new javaxt.io.File("/temp/exchange-sort.xml").write(xml);
-
         java.util.HashMap<String, javaxt.utils.Date> index = new java.util.HashMap<String, javaxt.utils.Date>();
 
-        org.w3c.dom.Node[] items = javaxt.xml.DOM.getElementsByTagName("Items", xml);
-        if (items.length>0){
-            org.w3c.dom.NodeList nodes = items[0].getChildNodes();
-            for (int i=0; i<nodes.getLength(); i++){
-                org.w3c.dom.Node node = nodes.item(i);
-                if (node.getNodeType()==1){
-                    FolderItem item = new FolderItem(node);
-                    index.put(item.getID(), item.getLastModifiedTime());
+        int offset = 0;
+        int limit = 1000;
+
+
+        while (true){
+
+
+            String msg =
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
+            + "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:t=\"http://schemas.microsoft.com/exchange/services/2006/types\" xmlns:m=\"http://schemas.microsoft.com/exchange/services/2006/messages\">"
+            + "<soap:Body>"
+            + "<m:FindItem Traversal=\"Shallow\">"
+            + "<m:ItemShape>"
+                    + "<t:BaseShape>IdOnly</t:BaseShape>" //<--"Default" vs "AllProperties"
+                    + "<t:AdditionalProperties>"
+                    + "<t:ExtendedFieldURI PropertyTag=\"0x3008\" PropertyType=\"SystemTime\" />" //<--This returns the LastModifiedTime!
+                    + "</t:AdditionalProperties>"
+            + "</m:ItemShape>"
+
+            + "<m:SortOrder>"
+            + "<t:FieldOrder Order=\"Descending\">"
+                + "<t:ExtendedFieldURI PropertyTag=\"0x3008\" PropertyType=\"SystemTime\" />"
+            + "</t:FieldOrder>"
+            + "</m:SortOrder>"
+
+            //+ "<m:IndexedPageItemView MaxEntriesReturned=\"1\" Offset=\"0\" BasePoint=\"Beginning\"/>"
+            + "<m:IndexedPageItemView MaxEntriesReturned=\"" + limit + "\" Offset=\"" + offset + "\" BasePoint=\"Beginning\"/>"
+
+
+            + "<m:ParentFolderIds>"
+            + "<t:FolderId Id=\"" + id + "\"/>"
+            + "</m:ParentFolderIds>"
+            + "</m:FindItem>"
+            + "</soap:Body>"
+            + "</soap:Envelope>";
+
+            org.w3c.dom.Document xml = conn.execute(msg);
+
+            org.w3c.dom.Node[] items = javaxt.xml.DOM.getElementsByTagName("Items", xml);
+            int numItems = 0;
+            if (items.length>0){
+                org.w3c.dom.NodeList nodes = items[0].getChildNodes();
+                for (int i=0; i<nodes.getLength(); i++){
+                    org.w3c.dom.Node node = nodes.item(i);
+                    if (node.getNodeType()==1){
+                        FolderItem item = new FolderItem(node);
+                        index.put(item.getID(), item.getLastModifiedTime());
+                        numItems++;
+                    }
                 }
+
             }
 
-        }        
+            offset+=numItems;
+
+            //System.out.println("Found " + numItems + " items");
+
+            if (numItems==0 || numItems<limit) break;
+        }
 
         return index;
     }
@@ -610,7 +628,7 @@ public class Folder {
         return DistinguishedFolderIds;
     }
 
-    
+
   //**************************************************************************
   //** getDistinguishedFolderId
   //**************************************************************************
@@ -623,7 +641,7 @@ public class Folder {
         return null;
     }
 
-    
+
   //**************************************************************************
   //** DistinguishedFolderIds
   //**************************************************************************
