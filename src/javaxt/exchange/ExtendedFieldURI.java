@@ -20,7 +20,7 @@ public class ExtendedFieldURI extends FieldURI {
   /** Creates a new instance of this class.
    *  @param id A unique id in the form of a Microsoft GUID.
    *  @param name Property name.
-   *  @param name Property type (e.g. "String", "Integer", "Boolean",
+   *  @param type Property type (e.g. "String", "Integer", "Boolean",
    *  "SystemTime", etc).
    */
     public ExtendedFieldURI(String id, String name, String type){
@@ -67,7 +67,7 @@ public class ExtendedFieldURI extends FieldURI {
 
       //TODO: Convert the value to a proper type before instantiating the Value class
         javaxt.utils.Value val = new javaxt.utils.Value(value);
-        
+
 
         return new Object[]{new ExtendedFieldURI(id, name, type), val};
     }
@@ -130,7 +130,7 @@ public class ExtendedFieldURI extends FieldURI {
         }
 
         StringBuffer xml = new StringBuffer();
-        if (operation.equalsIgnoreCase("create")){            
+        if (operation.equalsIgnoreCase("create")){
             xml.append("<" + namespace + "ExtendedProperty>");
             xml.append("<" + namespace + "ExtendedFieldURI PropertySetId=\"" + id + "\" PropertyName=\"" + name + "\" PropertyType=\"" + type + "\" />");
             xml.append("<" + namespace + "Value>" + value + "</" + namespace + "Value>");
@@ -156,7 +156,7 @@ public class ExtendedFieldURI extends FieldURI {
         return xml.toString();
     }
 
-    
+
     public String toXML(String namespace){
         String idAttr = (id==null ? "" : "PropertySetId=\"" + id + "\"");
         String nameAttr = (name.startsWith("0x") ? "PropertyTag=\"" + name + "\"" : "PropertyName=\"" + name + "\"");
@@ -164,12 +164,12 @@ public class ExtendedFieldURI extends FieldURI {
         return "<" + namespace + ":ExtendedFieldURI " + nameAttr + " " + idAttr + " " + typeAttr + "/>";
     }
 
-    
+
     public String toString(){
         return name;
     }
 
-    public int hashCode(){ 
+    public int hashCode(){
         return name.startsWith("0x") ? name.hashCode() : id.toUpperCase().hashCode();
     }
 

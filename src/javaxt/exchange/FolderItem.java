@@ -74,7 +74,7 @@ public class FolderItem {
 
     private org.w3c.dom.Node node;
 
-    
+
     protected FolderItem(){}
 
 
@@ -343,7 +343,7 @@ public class FolderItem {
         this.lastModified = lastModified;
     }
 
-    
+
   //**************************************************************************
   //** getChangeKey
   //**************************************************************************
@@ -499,11 +499,11 @@ public class FolderItem {
         if (attachments.isEmpty()) return null;
         else return attachments.toArray(new Attachment[attachments.size()]);
     }
-    
+
     public void removeAttachment(Attachment attachment){
         attachments.remove(attachment);
     }
-    
+
     public void addAttachment(Attachment attachment){
         attachments.add(attachment);
     }
@@ -627,9 +627,8 @@ public class FolderItem {
    *  @param name The name of the ExtendedFieldURI associated with the ExtendedProperty
    */
     public Value getExtendedProperty(String name){
-        java.util.Iterator<ExtendedFieldURI> it = extendedProperties.keySet().iterator();
-        while (it.hasNext()){
-            ExtendedFieldURI key = it.next();
+        for (ExtendedFieldURI key : extendedProperties.keySet()){
+            if (key==null) continue;
             if (key.getName().equalsIgnoreCase(name))
                 return extendedProperties.get(key);
         }
@@ -774,7 +773,7 @@ public class FolderItem {
 
             java.util.Iterator<ExtendedFieldURI> it = extendedProperties.keySet().iterator();
             while (it.hasNext()){
-                
+
                 ExtendedFieldURI property = it.next();
                 Value value = extendedProperties.get(property);
 

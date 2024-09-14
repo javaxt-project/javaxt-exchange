@@ -155,7 +155,7 @@ public class CalendarEvent extends FolderItem {
                     }
                     catch(java.text.ParseException e){}
                 }
-                else if (nodeName.equalsIgnoreCase("TimeZone")){                    
+                else if (nodeName.equalsIgnoreCase("TimeZone")){
                     timezone = javaxt.xml.DOM.getNodeValue(outerNode);
                 }
                 else if(nodeName.equalsIgnoreCase("IsAllDayEvent")){
@@ -184,7 +184,7 @@ public class CalendarEvent extends FolderItem {
         setTimeZone(timezone);
     }
 
-    
+
   //**************************************************************************
   //** getMailbox
   //**************************************************************************
@@ -203,7 +203,7 @@ public class CalendarEvent extends FolderItem {
             catch(Exception ex){
                 ex.printStackTrace();
             }
-            
+
             return null;
         }
     }
@@ -629,7 +629,7 @@ public class CalendarEvent extends FolderItem {
     public void setAllDayEvent(javaxt.utils.Date date){
         try{
             String d1 = date.toString("MM/dd/yyyy");
-            java.util.Date d2 = new javaxt.utils.Date(d1).add(1, "day");
+            javaxt.utils.Date d2 = new javaxt.utils.Date(d1).add(1, "day");
             this.setStartTime(d1);
             this.setEndTime(d2);
             //IsAllDayEvent
@@ -699,8 +699,8 @@ public class CalendarEvent extends FolderItem {
 
 
 
-    
-    
+
+
     private String create(Connection conn) throws ExchangeException {
 
         StringBuffer msg = new StringBuffer();
@@ -746,14 +746,14 @@ public class CalendarEvent extends FolderItem {
       */
 
         if (getSubject()!=null) msg.append("<t:Subject>" + subject + "</t:Subject>");
-        
+
       //Add body
         if (getBody()!=null){
             msg.append("<t:Body BodyType=\"" + getBodyType() + "\">");
             msg.append(wrap(body));
             msg.append("</t:Body>");
         };
-        
+
 
       //Add categories
         if (!categories.isEmpty()){
@@ -807,7 +807,7 @@ public class CalendarEvent extends FolderItem {
             }
             msg.append("</t:RequiredAttendees>");
         }
-        
+
 
         if (attendees.values().contains(false)){
             msg.append("<t:OptionalAttendees>");
@@ -841,7 +841,7 @@ public class CalendarEvent extends FolderItem {
         return id;
     }
 
-    
+
   //**************************************************************************
   //** save
   //**************************************************************************
@@ -858,11 +858,11 @@ public class CalendarEvent extends FolderItem {
 
       //Update last modified date
         this.lastModified = new CalendarEvent(id, conn).getLastModifiedTime();
-        
+
         return id;
     }
 
-    
+
   //**************************************************************************
   //** delete
   //**************************************************************************
